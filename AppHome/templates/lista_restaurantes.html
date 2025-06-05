@@ -1,0 +1,421 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Top Restaurantes – MotoTec{% endblock title %}
+
+{% block content %}
+<!-- Container principal (mobile-first) -->
+<div class="max-w-md lg:max-w-4xl mx-auto mt-4 px-4">
+
+  <!-- Título da seção -->
+  <h2 class="text-xl sm:text-2xl font-semibold text-mototec-teal mb-4">
+    🍴 Top 3 Restaurantes
+  </h2>
+
+  {% if restaurantes %}
+    {# Fundo levemente cinza atrás dos cards para destacar o sombreamento #}
+    <div class="rounded-lg bg-gray-100 p-0 space-y-4 overflow-hidden">
+      {% for restaurante in restaurantes %}
+        {# Define classes de borda e hover conforme a posição #}
+        <div
+          class="
+            restaurante-card
+            bg-white
+            rounded-md
+            shadow-md
+            p-4
+            flex flex-col sm:flex-row sm:items-center sm:justify-between
+            transform hover:scale-105 hover:shadow-lg transition duration-200
+            {% if forloop.first %}
+              border-2 border-yellow-400 hover:bg-yellow-100
+            {% elif forloop.counter == 2 %}
+              border-2 border-gray-400 hover:bg-gray-200
+            {% elif forloop.counter == 3 %}
+              border-2 border-amber-500 hover:bg-amber-100
+            {% endif %}
+          "
+          data-lat="{{ restaurante.latitude }}"
+          data-lng="{{ restaurante.longitude }}"
+          data-nome="{{ restaurante.nome }}"
+        >
+          <!-- Parte textual do card -->
+          <div class="flex-1 flex items-center gap-2">
+            {% if forloop.first %}
+              <span class="text-2xl">🥇</span>
+            {% elif forloop.counter == 2 %}
+              <span class="text-2xl">🥈</span>
+            {% elif forloop.counter == 3 %}
+              <span class="text-2xl">🥉</span>
+            {% endif %}
+            <div>
+              <h3 class="text-base sm:text-lg font-semibold text-mototec-teal">
+                {{ restaurante.nome }}
+              </h3>
+              <p class="text-green-600 text-xs sm:text-sm mt-1 flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     aria-hidden="true"
+                     class="h-4 w-4 text-green-600"
+                     viewBox="0 0 20 20"
+                     fill="currentColor">
+                  <path d="M2 5.5A2.5 2.5 0 014.5 3h11A2.5 2.5 0 0118 5.5v9a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 012 14.5v-9zM4.5 4a1.5 1.5 0 00-1.5 1.5V7h13V5.5A1.5 1.5 0 0015.5 4h-11zM17 8H3v6.5a1.5 1.5 0 001.5 1.5h11a1.5 1.5 0 001.5-1.5V8z" />
+                </svg>
+                <span><strong>{{ restaurante.pedidos_hoje }}</strong> hoje</span>
+              </p>
+              <p class="text-gray-600 text-xs sm:text-sm mt-1 flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     aria-hidden="true"
+                     class="h-4 w-4 text-pink-500"
+                     viewBox="0 0 24 24"
+                     fill="currentColor">
+                  <path d="M12 2C8.14 2 5 5.14 5 9c0 6.39 6.41 11.73 6.74 12l.26.23.26-.23C12.59 20.73 19 15.39 19 9c0-3.86-3.14-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z" />
+                </svg>
+                <span>{{ restaurante.bairro }}</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Botão “⤴ Rota”: full-width em mobile, inline em sm+ -->
+          <div class="mt-3 sm:mt-0 sm:ml-3 flex-shrink-0">
+            <button
+              type="button"
+              aria-label="Iniciar rota para {{ restaurante.nome }}"
+              data-lat="{{ restaurante.latitude }}"
+              data-lng="{{ restaurante.longitude }}"
+              class="rota-btn w-full sm:w-auto bg-mototec-azul hover:bg-mototec-teal text-black text-xs sm:text-sm font-medium px-3 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-mototec-teal flex items-center justify-center"
+            >
+              ⤴ Rota
+            </button>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-gray-500 text-center text-xs sm:text-sm">Nenhum restaurante encontrado.</p>
+  {% endif %}
+</div>
+
+<!-- ------------------------------------------------------------- -->
+<!-- MODAL / OVERLAY DE NAVEGAÇÃO EM TEMPO REAL (mobile-first)      -->
+<!-- ------------------------------------------------------------- -->
+<div
+  id="mapaRotaContainer"
+  class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50"
+>
+  <div class="bg-white rounded-lg shadow-lg w-full sm:w-11/12 lg:w-4/5 xl:w-3/4 h-full sm:h-[90%] flex flex-col sm:flex-row overflow-hidden">
+    <!-- Botão de fechar (área maior para toque em mobile) -->
+    <div class="absolute top-2 right-2 z-50">
+      <button
+        id="fecharMapaRota"
+        class="text-white bg-red-600 hover:bg-red-700 rounded-full w-10 h-10 flex items-center justify-center text-2xl leading-none focus:outline-none focus:ring-2 focus:ring-red-400"
+        aria-label="Fechar janela"
+      >
+        &times;
+      </button>
+    </div>
+
+    <!-- 1. Área do mapa (metade da altura no mobile, 2/3 em sm+) -->
+    <div id="mapaRota" class="w-full sm:w-2/3 h-1/2 sm:h-full"></div>
+
+    <!-- 2. Painel Lateral de Instruções -->
+    <div id="painelInstrucoes" class="w-full sm:w-1/3 h-1/2 sm:h-full bg-white overflow-y-auto -webkit-overflow-scrolling-touch">
+      <h3 class="text-lg font-semibold text-gray-700 p-4 border-b">
+        Instruções de Navegação
+      </h3>
+
+      <!-- Indicador de “Carregando…” (inicialmente escondido) -->
+      <div id="loadingInstrucoes" class="text-center text-gray-500 p-4 hidden">
+        Carregando rota…
+      </div>
+
+      <div id="listaInstrucoes" class="p-4 space-y-3 text-gray-600">
+        <p class="text-gray-500 italic text-xs sm:text-sm">
+          Clique em “⤴ Rota” para iniciar a navegação.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <!-- 1) Leaflet CSS/JS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- 2) Leaflet Routing Machine CSS/JS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css"
+  />
+  <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // Elementos principais
+      const botoesRota        = document.querySelectorAll(".rota-btn");
+      const mapaRotaContainer = document.getElementById("mapaRotaContainer");
+      const fecharMapaRota    = document.getElementById("fecharMapaRota");
+      const loadingInstrucoes = document.getElementById("loadingInstrucoes");
+      const listaInstrucoes   = document.getElementById("listaInstrucoes");
+
+      let map = null;              // Instância do Leaflet
+      let routingControl = null;   // Controle de rota do LRM
+      let marcadorUsuario = null;  // Marcador de localização do usuário
+
+      // ---- 1. Inicializar mapa (apenas uma vez) ----
+      function inicializarMapa() {
+        if (map) return;
+        map = L.map("mapaRota", {
+          center: [-24.0167, -46.4667],
+          zoom: 13
+        });
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "© OpenStreetMap contributors"
+        }).addTo(map);
+      }
+
+      // ---- 2. Criar rota interativa + painel de instruções ----
+      function criarRotaInterativa(latOri, lngOri, latDest, lngDest) {
+        // Mostra “Carregando…” no painel
+        loadingInstrucoes.classList.remove("hidden");
+        listaInstrucoes.classList.add("hidden");
+
+        // Remove controle de rota anterior, se existir
+        if (routingControl) {
+          map.removeControl(routingControl);
+          routingControl = null;
+        }
+
+        // Adiciona novo controle de rota (Leaflet Routing Machine)
+        routingControl = L.Routing.control({
+          waypoints: [
+            L.latLng(latOri, lngOri),
+            L.latLng(latDest, lngDest)
+          ],
+          router: L.Routing.osrmv1({
+            serviceUrl: "https://router.project-osrm.org/route/v1"
+          }),
+          lineOptions: {
+            styles: [{ color: "#1976D2", weight: 5 }]
+          },
+          createMarker: function(i, wp) {
+            // Marcadores de origem e destino são arrastáveis
+            const icon = L.icon({
+              iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+              iconSize: [25, 41],
+              iconAnchor: [12, 41],
+              popupAnchor: [1, -34],
+              shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+              shadowSize: [41, 41]
+            });
+            const marker = L.marker(wp.latLng, { icon: icon, draggable: true });
+            marker.on("dragend", function(e) {
+              const novaPos = e.target.getLatLng();
+              if (i === 0) {
+                // Origem arrastada
+                const dest = routingControl.getWaypoints()[1].latLng;
+                criarRotaInterativa(novaPos.lat, novaPos.lng, dest.lat, dest.lng);
+              } else if (i === 1) {
+                // Destino arrastado
+                const ori = routingControl.getWaypoints()[0].latLng;
+                criarRotaInterativa(ori.lat, ori.lng, novaPos.lat, novaPos.lng);
+              }
+            });
+            return marker;
+          },
+          routeWhileDragging: true,
+          fitSelectedRoutes: true,
+          showAlternatives: true,
+          altLineOptions: {
+            styles: [{ color: "gray", weight: 3, opacity: 0.7 }]
+          },
+          addWaypoints: false
+        }).addTo(map);
+
+        // Aguarda rota ser encontrada
+        routingControl.on("routesfound", function(e) {
+          const rota = e.routes[0];
+          listaInstrucoes.innerHTML = "";  // limpa instruções anteriores
+
+          rota.instructions.forEach((instrucao, index) => {
+            // Container para cada passo
+            const stepDiv = document.createElement("div");
+            stepDiv.classList.add("instrucao-item", "mb-3");
+
+            // Texto da instrução
+            const texto = document.createElement("p");
+            texto.classList.add("font-medium", "text-gray-800", "text-xs", "sm:text-sm");
+            texto.textContent = `${index + 1}. ${instrucao.text}`;
+            stepDiv.appendChild(texto);
+
+            // Detalhes (distância e tempo)
+            const detalhes = document.createElement("p");
+            detalhes.classList.add("text-gray-600", "text-[10px]", "sm:text-xs");
+            const distanciaKm = (instrucao.distance / 1000).toFixed(1);
+            const tempoMin = Math.round(instrucao.time / 60);
+            detalhes.textContent = `Distância: ${distanciaKm} km • Tempo: ${tempoMin} min`;
+            stepDiv.appendChild(detalhes);
+
+            listaInstrucoes.appendChild(stepDiv);
+          });
+
+          // Esconde “Carregando…” e mostra instruções
+          loadingInstrucoes.classList.add("hidden");
+          listaInstrucoes.classList.remove("hidden");
+
+          // Sintetiza voz para instruções
+          falarInstrucoesComVoz(rota.instructions);
+        });
+
+        // Adiciona marcador de localização do usuário
+        if (!marcadorUsuario) {
+          marcadorUsuario = L.marker([latOri, lngOri], {
+            icon: L.icon({
+              iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+              iconSize: [25, 41],
+              iconAnchor: [12, 41],
+              popupAnchor: [1, -34],
+              shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+              shadowSize: [41, 41]
+            })
+          })
+            .addTo(map)
+            .bindPopup("Você está aqui")
+            .openPopup();
+
+          // Atualiza posição a cada 5s
+          setInterval(() => {
+            navigator.geolocation.getCurrentPosition(
+              pos => {
+                const latAtual = pos.coords.latitude;
+                const lngAtual = pos.coords.longitude;
+                marcadorUsuario.setLatLng([latAtual, lngAtual]);
+              },
+              () => { /* Erros ignorados pontualmente */ }
+            );
+          }, 5000);
+        } else {
+          marcadorUsuario.setLatLng([latOri, lngOri]);
+        }
+      }
+
+      // ---- 3. Web Speech API para instruções ----
+      function falarInstrucoesComVoz(instrucoes) {
+        if (!("speechSynthesis" in window)) return;
+        window.speechSynthesis.cancel();
+        instrucoes.forEach(instrucao => {
+          const utterance = new SpeechSynthesisUtterance(instrucao.text);
+          utterance.rate = 1.0;
+          utterance.pitch = 1.0;
+          utterance.lang = "pt-BR";
+          window.speechSynthesis.speak(utterance);
+        });
+      }
+
+      // ---- 4. Clique nos botões “⤴ Rota” ----
+      botoesRota.forEach(botao => {
+        botao.addEventListener("click", function() {
+          const card = botao.closest(".restaurante-card");
+          if (!card) return;
+          const latDestino = parseFloat(card.getAttribute("data-lat"));
+          const lngDestino = parseFloat(card.getAttribute("data-lng"));
+          const nomeRestaurante = card.getAttribute("data-nome") || "";
+
+          if (isNaN(latDestino) || isNaN(lngDestino)) {
+            alert("Coordenadas inválidas.");
+            return;
+          }
+
+          // Exibe o modal
+          mapaRotaContainer.classList.remove("hidden");
+          inicializarMapa();
+
+          // Tenta obter geolocalização do entregador
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              position => {
+                const latOrigem = position.coords.latitude;
+                const lngOrigem = position.coords.longitude;
+                criarRotaInterativa(latOrigem, lngOrigem, latDestino, lngDestino);
+              },
+              error => {
+                console.warn("Erro de geolocalização:", error.message);
+                alert("Não foi possível obter sua localização. Exibindo apenas o ponto do restaurante.");
+
+                // Centraliza mapa no restaurante (zoom 15)
+                map.setView([latDestino, lngDestino], 15);
+                L.marker([latDestino, lngDestino])
+                  .addTo(map)
+                  .bindPopup(nomeRestaurante || "Destino")
+                  .openPopup();
+
+                // Mostra mensagem no painel
+                loadingInstrucoes.classList.add("hidden");
+                listaInstrucoes.innerHTML = `
+                  <p class="text-gray-500 italic text-xs sm:text-sm">
+                    Permita geolocalização para ver a rota completa.
+                  </p>`;
+                listaInstrucoes.classList.remove("hidden");
+              },
+              {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+              }
+            );
+          } else {
+            alert("Seu navegador não suporta geolocalização. Exibindo apenas o ponto do restaurante.");
+
+            // Centraliza mapa no restaurante
+            map.setView([latDestino, lngDestino], 15);
+            L.marker([latDestino, lngDestino])
+              .addTo(map)
+              .bindPopup(nomeRestaurante || "Destino")
+              .openPopup();
+
+            loadingInstrucoes.classList.add("hidden");
+            listaInstrucoes.innerHTML = `
+              <p class="text-gray-500 italic text-xs sm:text-sm">
+                Ative geolocalização para navegação.
+              </p>`;
+            listaInstrucoes.classList.remove("hidden");
+          }
+        });
+      });
+
+      // ---- 5. Botão “×” para fechar o modal e limpar rota ----
+      fecharMapaRota.addEventListener("click", function() {
+        mapaRotaContainer.classList.add("hidden");
+
+        // Remove controle de rota, se existir
+        if (routingControl) {
+          map.removeControl(routingControl);
+          routingControl = null;
+        }
+
+        // Remove marcadores e linhas do mapa
+        map.eachLayer(layer => {
+          if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+            map.removeLayer(layer);
+          }
+        });
+
+        // Cancela qualquer síntese de voz em andamento
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+        }
+
+        // Restaura mensagem inicial no painel
+        loadingInstrucoes.classList.add("hidden");
+        listaInstrucoes.innerHTML = `
+          <p class="text-gray-500 italic text-xs sm:text-sm">
+            Clique em “⤴ Rota” para iniciar a navegação.
+          </p>`;
+      });
+    });
+  </script>
+{% endblock %}

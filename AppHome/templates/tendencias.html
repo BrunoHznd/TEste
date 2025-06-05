@@ -1,0 +1,134 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Tendência – MotoTec{% endblock title %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+  <!-- Título com ícone de ajuda -->
+  <div class="flex flex-col items-center space-y-2">
+    <div class="flex items-center space-x-2">
+      <h1 class="text-xl sm:text-2xl font-bold">🔮 Tendência da Semana</h1>
+      <!-- Ícone “?” com tooltip posicionado para não ser cortado -->
+      <div class="relative group inline-block">
+        <span
+          class="h-6 w-6 flex items-center justify-center rounded-full bg-gray-200 text-gray-700 text-sm font-bold
+                 hover:bg-gray-300 cursor-pointer transition"
+        >
+          ?
+        </span>
+        <div
+          class="invisible group-hover:visible absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 bg-white border border-gray-300 rounded-md
+                 shadow-lg text-gray-800 text-xs p-2 text-left z-20 opacity-0 group-hover:opacity-100
+                 transition-opacity duration-150 whitespace-normal"
+        >
+          <p class="font-semibold mb-1">Como usar esta página:</p>
+          <ul class="list-disc list-inside space-y-1">
+            <li>Clique em “Hoje”, “Ontem” ou “Tendência” para filtrar os dados.</li>
+            <li>Visualize pedidos por bairro e período (Manhã, Almoço, Tarde, Noite).</li>
+            <li>Ao passar o dedo ou mouse sobre cada linha, ela se destaca na cor do período correspondente.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botões de filtro alinhados e do mesmo tamanho -->
+    <div class="flex flex-wrap justify-center gap-4 mt-2">
+      <a href="?dia=hoje"
+         class="px-5 py-2 rounded-full text-white text-sm transition 
+                {% if dia == 'hoje' %}
+                  bg-green-600 
+                {% else %}
+                  bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-300 
+                {% endif %}">
+        Hoje
+      </a>
+      <a href="?dia=ontem"
+         class="px-5 py-2 rounded-full text-white text-sm transition 
+                {% if dia == 'ontem' %}
+                  bg-green-600 
+                {% else %}
+                  bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-300 
+                {% endif %}">
+        Ontem
+      </a>
+      <a href="?dia=tendencia"
+         class="px-5 py-2 rounded-full text-white text-sm transition shadow 
+                {% if dia == 'tendencia' %}
+                  bg-green-600 
+                {% else %}
+                  bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-300 
+                {% endif %}">
+        Tendência
+      </a>
+    </div>
+  </div>
+
+  <!-- Container da tabela branco, com borda arredondada e sombra -->
+  <div class="bg-white rounded-lg shadow overflow-hidden">
+
+    <!-- Cabeçalho (sticky para rolagem) -->
+    <div class="grid grid-cols-4 bg-gray-100 text-gray-700 font-semibold text-sm text-center px-4 py-2">
+      <div class="text-left">🏙️ Bairro</div>
+      <div>📅 Dia</div>
+      <div>🕑 Período</div>
+      <div>📈 Pedidos</div>
+    </div>
+
+    <!-- Linhas de dados -->
+    {% if modo == 'tendencia' %}
+      {% for item in tendencias %}
+        <div
+          class="grid grid-cols-4 text-sm text-center px-4 py-3 border-t border-gray-200
+                 transform transition duration-200 ease-out hover:scale-105 hover:shadow-lg
+                 {% if item.horario == 'Manhã' %}
+                   hover:bg-yellow-50
+                 {% elif item.horario == 'Almoço' %}
+                   hover:bg-green-50
+                 {% elif item.horario == 'Tarde' %}
+                   hover:bg-orange-50
+                 {% else %}
+                   hover:bg-gray-800 hover:text-white
+                 {% endif %}"
+        >
+          <div class="text-left">{{ item.bairro }}</div>
+          <div>{{ item.dia }}</div>
+          <div>{{ item.horario }}</div>
+          <div class="font-bold {% if item.horario == 'Noite' %} text-yellow-500 {% else %} text-green-600 {% endif %}">
+            {{ item.pedidos }}
+          </div>
+        </div>
+      {% empty %}
+        <div class="p-6 text-center text-gray-500">Nenhuma tendência disponível.</div>
+      {% endfor %}
+    {% else %}
+      {% for item in semana %}
+        <div
+          class="grid grid-cols-4 text-sm text-center px-4 py-3 border-t border-gray-200
+                 transform transition duration-200 ease-out hover:scale-105 hover:shadow-lg
+                 {% if item.horario == 'Manhã' %}
+                   hover:bg-yellow-50
+                 {% elif item.horario == 'Almoço' %}
+                   hover:bg-green-50
+                 {% elif item.horario == 'Tarde' %}
+                   hover:bg-orange-50
+                 {% else %}
+                   hover:bg-gray-800 hover:text-white
+                 {% endif %}"
+        >
+          <div class="text-left">{{ item.bairro }}</div>
+          <div>{{ referencia }}</div>
+          <div>{{ item.horario }}</div>
+          <div class="font-bold {% if item.horario == 'Noite' %} text-yellow-500 {% else %} text-green-600 {% endif %}">
+            {{ item.pedidos }}
+          </div>
+        </div>
+      {% empty %}
+        <div class="p-6 text-center text-gray-500">Nenhuma informação disponível para esta data.</div>
+      {% endfor %}
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

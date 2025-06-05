@@ -1,0 +1,129 @@
+{# mapa.html #}
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Mapa de Calor – MotoTec{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto mt-6">
+    <h2 class="text-2xl font-bold text-blue-700 mb-2">
+        Mapa de Calor – Pedidos (últimas 24 horas)
+    </h2>
+
+    {% if not user.is_authenticated %}
+        <p class="text-gray-600 mb-4">
+            Você precisa <a href="{% url 'login' %}" class="text-blue-600 underline">fazer login</a> para ver o mapa.
+        </p>
+    {% else %}
+        <p class="text-gray-600 mb-4">
+            Cada marcador representa um restaurante que recebeu pedido nas últimas 24 horas.
+            O raio de cada círculo é fixo (2 500 m), independente da quantidade de pedidos.
+        </p>
+    {% endif %}
+
+    <div class="flex flex-col lg:flex-row gap-6">
+        <!-- DIV onde o Leaflet irá desenhar o mapa -->
+        <div id="map" class="w-full lg:w-3/4 h-[500px] bg-gray-200 rounded shadow-lg overflow-hidden"></div>
+
+        <!-- Legenda lateral -->
+        <div class="lg:w-1/4 bg-white border rounded p-4 shadow">
+            <h3 class="font-semibold text-lg text-gray-700 mb-2">Legenda</h3>
+            <p class="mb-2">
+                <span class="inline-block w-4 h-4 bg-red-600 rounded-full mr-2"></span>
+                Restaurante ativo (pedido nas últimas 24h)
+            </p>
+            <p class="text-xs text-gray-500">
+                Cada círculo tem raio de <strong>2 500 metros</strong>.
+            </p>
+        </div>
+    </div>
+
+    <!-- Botão fixo para centralizar em Praia Grande -->
+    <div class="fixed bottom-4 right-4">
+        <button id="focusPraiaGrande"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+            ➤ Focar em Praia Grande
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<!-- 1) Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<!-- 2) Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 3) Inicializa o mapa em Praia Grande (lat=-24.0167, lng=-46.4667), zoom 13
+    const map = L.map("map").setView([-24.0167, -46.4667], 13);
+
+    // 4) Adiciona camada de tiles (OpenStreetMap)
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap contributors"
+    }).addTo(map);
+
+    // 5) (Opcional) Círculo de referência de 15 km para entender o raio da cidade
+    L.circle([-24.0167, -46.4667], {
+        color: "#0000FF",
+        fillColor: "#0000FF",
+        fillOpacity: 0.1,
+        radius: 15000  // 15 km em metros
+    }).addTo(map);
+
+    // 6) Array para armazenar os círculos desenhados, assim podemos removê-los ao atualizar
+    let circulosAtuais = [];
+
+    // 7) Função que busca /api/demanda/ e desenha círculos individuais (somente lat,lng)
+    function atualizarCirculos() {
+        fetch("/api/demanda/")
+            .then(response => response.json())
+            .then(data => {
+                // 7.1) Remove todos os círculos existentes
+                circulosAtuais.forEach(c => {
+                    map.removeLayer(c);
+                });
+                circulosAtuais = [];
+
+                // 7.2) Se não vier array ou se for vazio, nada a fazer
+                if (!data.dados || data.dados.length === 0) {
+                    return;
+                }
+
+                // 7.3) Para cada ponto [lat, lng, intensidade], extraímos lat/lng
+                data.dados.forEach(ponto => {
+                    const lat = ponto[0];
+                    const lng = ponto[1];
+
+                    // 7.4) Desenha um círculo fixo de 2 500 m ao redor de [lat, lng]
+                    const circulo = L.circle([lat, lng], {
+                        color: "#FF4500",
+                        fillColor: "#FF6347",
+                        fillOpacity: 0.4,
+                        radius: 2500  // 2 500 metros de raio
+                    }).addTo(map);
+
+                    circulosAtuais.push(circulo);
+                });
+            })
+            .catch(error => {
+                console.error("Erro ao carregar dados para círculos:", error);
+            });
+    }
+
+    // 8) Chama imediatamente para desenhar logo que a página carrega
+    atualizarCirculos();
+
+    // 9) Recarrega os círculos a cada 10 segundos (10 000 ms)
+    setInterval(atualizarCirculos, 10000);
+
+    // 10) Botão para formatação (focar em Praia Grande novamente)
+    document.getElementById("focusPraiaGrande").addEventListener("click", function() {
+        map.setView([-24.0167, -46.4667], 13);
+    });
+});
+</script>
+{% endblock %}

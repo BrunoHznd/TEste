@@ -1,0 +1,101 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MotoTec{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    {% block head %}{% endblock %}
+</head>
+{% if user.is_authenticated %}
+<body class="bg-gray-100 text-gray-900 min-h-screen flex flex-col" data-authenticated="true">
+{% else %}
+<body class="bg-gray-100 text-gray-900 min-h-screen flex flex-col" data-authenticated="false">
+{% endif %}
+
+    <header class="bg-white shadow-md p-4 flex justify-between items-center">
+        <div class="flex items-center">
+            <a href="{% url 'home' %}" class="flex items-center group">
+                <img src="{% static 'imagem/logo.png' %}" alt="MotoTec Logo" class="h-8 w-auto mr-2">
+                <span class="text-2xl font-bold text-blue-600">MotoTec</span>
+            </a>
+            <div class="absolute left-0 mt-2 w-64 bg-white border rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                <a href="{% url 'home' %}" class="block px-4 py-2 text-sm hover:bg-gray-100">Mapa de Calor</a>
+                <a href="{% url 'lista_restaurantes' %}" class="block px-4 py-2 text-sm hover:bg-gray-100">Restaurantes</a>
+                <a href="{% url 'tendencias' %}" class="block px-4 py-2 text-sm hover:bg-gray-100">Tendências</a>
+            </div>
+        </div>
+        {% if user.is_authenticated %}
+        <div class="relative group">
+            <button class="text-sm text-gray-800 font-medium focus:outline-none">
+                {{ user.username }} ⌄
+            </button>
+            <div class="absolute right-0 mt-2 w-48 bg-white border rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                <a href="{% url 'home' %}" class="block px-4 py-2 text-sm hover:bg-gray-100">Mapa de Calor</a>
+                <a href="{% url 'lista_restaurantes' %}" class="block px-4 py-2 text-sm hover:bg-gray-100">Restaurantes</a>
+                <a href="{% url 'tendencias' %}" class="block px-4 py-2 text-sm hover:bg-gray-100">Tendências</a>
+                <button onclick="abrirModalLogout()" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100">
+                    Sair
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <a href="{% url 'login' %}" class="text-sm text-blue-600 hover:underline">Entrar</a>
+        {% endif %}
+    </header>
+
+    {% if messages %}
+    <div id="popup-msg" class="fixed top-5 right-5 z-50 bg-green-500 text-white px-4 py-2 rounded shadow-lg">
+        {% for message in messages %}
+            {{ message }}
+        {% endfor %}
+    </div>
+    <script>
+        setTimeout(() => {
+            const popup = document.getElementById('popup-msg');
+            if (popup) popup.style.display = 'none';
+        }, 3000);
+    </script>
+    {% endif %}
+
+    <main class="flex-1 p-6">
+        {% block content %}{% endblock %}
+    </main>
+
+
+    <footer class="bg-white text-center p-4 text-sm text-gray-500">
+        &copy; {{ now|date:"Y" }} MotoTec - Todos os direitos reservados.
+    </footer>
+
+    <div id="modalLogout" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
+    <div class="bg-white p-6 rounded shadow-lg max-w-sm w-full">
+        <h2 class="text-lg font-semibold mb-4">Deseja realmente sair?</h2>
+        <div class="flex justify-end gap-4">
+            <button onclick="fecharModalLogout()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancelar</button>
+            <form method="POST" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                    Sim, sair
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+    {% block scripts %}
+    
+    <script>
+    function abrirModalLogout() {
+        document.getElementById('modalLogout').classList.remove('hidden');
+    }
+
+    function fecharModalLogout() {
+        document.getElementById('modalLogout').classList.add('hidden');
+    }
+</script>
+    
+    {% endblock %}
+</body>
+</html>

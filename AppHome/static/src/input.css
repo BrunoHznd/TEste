@@ -1,0 +1,31 @@
+/* AppHome/static/src/input.css */
+
+/* 1. Começo padrão do Tailwind */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 2. Opcional: importa tema padrão do Flowbite (opcional se quiser customizar) */
+/* @import "tailwindcss/base";  já está incluído em @tailwind base */
+
+/*
+  Em vez de @import do Flowbite, vamos seguir a ordem recomendada:
+  - importar as "themes" do Flowbite
+  - habilitar o plugin do Flowbite
+  - informar ao Tailwind de onde vêm os componentes do Flowbite (source)
+*/
+
+/* 3. Importa as configurações de tema do Flowbite */
+@import "flowbite/src/themes/default";
+
+/* 4. Habilita o plugin do Flowbite */
+@plugin "flowbite/plugin";
+
+/* 5. Opcional (mapeia onde o Tailwind irá buscar os componentes do Flowbite) */
+@layer components {
+  /* nesta camada você pode estender componentes, se desejar */
+}
+
+/* Obs.: o Flowbite fornece classes prontas, então o @plugin já
+   “puxa” as classes necessárias. */
+
