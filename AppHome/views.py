@@ -28,9 +28,6 @@ def login_view(request):
     
     return render(request, 'login.html')
 
-def animacao_view(request):
-    return render(request, "animacao.html")
-
 def cadastro_view(request):
     if request.method == 'POST':
         form = CadastroForm(request.POST)
