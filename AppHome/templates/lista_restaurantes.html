@@ -14,7 +14,7 @@
 
   {% if restaurantes %}
     {# Fundo levemente cinza atrás dos cards para destacar o sombreamento #}
-    <div class="rounded-lg bg-gray-100 p-0 space-y-4 overflow-hidden">
+    <div class="rounded-lg bg-gray-100 p-0 space-y-4">
       {% for restaurante in restaurantes %}
         {# Define classes de borda e hover conforme a posição #}
         <div
@@ -163,10 +163,102 @@
       const listaInstrucoes   = document.getElementById("listaInstrucoes");
 
       let map = null;              // Instância do Leaflet
+
+      // Objeto de tradução personalizada para Português
+      const ptCustomLocalization = {
+        directions: {
+          N: 'Norte', NE: 'Nordeste', E: 'Leste', SE: 'Sudeste', S: 'Sul', SW: 'Sudoeste', W: 'Oeste', NW: 'Noroeste',
+          n: 'norte', ne: 'nordeste', e: 'leste', se: 'sudeste', s: 'sul', sw: 'sudoeste', w: 'oeste', nw: 'noroeste',
+          straight: 'em frente',
+          'straight ahead': 'em frente',
+          right: 'à direita',
+          left: 'à esquerda',
+          'slight right': 'levemente à direita',
+          'slight left': 'levemente à esquerda',
+          'sharp right': 'acentuadamente à direita',
+          'sharp left': 'acentuadamente à esquerda',
+          uturn: 'o retorno',
+          'on the left': 'à esquerda',
+          'on the right': 'à direita',
+          north: 'Norte', northeast: 'Nordeste', east: 'Leste', southeast: 'Sudeste', south: 'Sul', southwest: 'Sudoeste', west: 'Oeste', northwest: 'Noroeste'
+        },
+        instructions: {
+          Head: 'Siga {dir} em {road}',
+          Depart: 'Parta {dir} em {road}',
+          DepartStreet: 'Parta {dir} em {road}',
+          HeadStreet: 'Siga {dir} em {road}',
+          StartAt: 'Comece em {road}',
+          Continue: 'Continue {dir} em {road}',
+          ContinueStraight: 'Continue em frente em {road}',
+          ContinueStreet: 'Continue em {road}',
+          GoStraight: 'Siga em frente em {road}',
+          Turn: 'Vire {modifier} em {road}',
+          TurnLeft: 'Vire à esquerda em {road}',
+          TurnRight: 'Vire à direita em {road}',
+          SlightLeft: 'Vire levemente à esquerda em {road}',
+          SlightRight: 'Vire levemente à direita em {road}',
+          SharpLeft: 'Vire acentuadamente à esquerda em {road}',
+          SharpRight: 'Vire acentuadamente à direita em {road}',
+          UTurn: 'Faça o retorno em {road}',
+          TurnToNowhere: 'Vire {modifier}',
+          TurnLeftToNowhere: 'Vire à esquerda',
+          TurnRightToNowhere: 'Vire à direita',
+          SlightLeftToNowhere: 'Vire levemente à esquerda',
+          SlightRightToNowhere: 'Vire levemente à direita',
+          SharpLeftToNowhere: 'Vire acentuadamente à esquerda',
+          SharpRightToNowhere: 'Vire acentuadamente à direita',
+          UTurnToNowhere: 'Faça o retorno',
+          OnRamp: 'Pegue a rampa {modifier} em direção a {destination}',
+          OnRampMerge: 'Pegue a rampa {modifier} e incorpore em {road}',
+          TakeRamp: 'Pegue a rampa {modifier} em direção a {destination}',
+          TakeRampToRoad: 'Pegue a rampa {modifier} para {road}',
+          OffRamp: 'Saia na rampa {modifier} em {road}',
+          ExitRamp: 'Pegue a saída {modifier} para {road}',
+          Merge: 'Incorpore {modifier} em {road}',
+          MergeLeft: 'Incorpore à esquerda em {road}',
+          MergeRight: 'Incorpore à direita em {road}',
+          MergeStraight: 'Incorpore em frente em {road}',
+          KeepLeft: 'Mantenha-se à esquerda em {road}',
+          KeepRight: 'Mantenha-se à direita em {road}',
+          StayOn: 'Permaneça em {road} {distance}',
+          UseLane: 'Use a faixa {lanes} para {maneuver}',
+          Fork: 'Na bifurcação, siga {modifier}',
+          EndOfRoad: 'No final da rua, vire {modifier} em {road}',
+          Roundabout: 'Na rotatória, pegue a {exitStr} saída em {road}',
+          EnterRoundabout: 'Entre na rotatória e pegue a {exitStr} saída em {road}',
+          ExitRoundabout: 'Saia da rotatória em {road}',
+          DestinationReached: 'Você chegou ao seu destino.',
+          Arrive: 'Você chegou em {name}.',
+          ArriveLeft: 'Você chegou ao seu destino {name}, à esquerda.',
+          ArriveRight: 'Você chegou ao seu destino {name}, à direita.',
+          ArriveAtDestination: 'Você chegou ao seu destino, {modifier}.',
+          TurnGeneric: 'Vire {modifier}',
+          NewName: "Continue em {road} (nova nomenclatura)",
+          Notification: "Notificação: {message}",
+          EndOfRoadTurn: "No final da via, vire {modifier} em {road}",
+          Rotary: "Na rotatória {name}, pegue a {exitStr} saída para {road}",
+          RoundaboutTurn: "Na rotatória, vire {modifier} na {exitStr} saída para {road}",
+        },
+        formatOrder: function(n) {
+          return n + '. ';
+        },
+        ui: {
+          startPlaceholder: 'Local de partida',
+          endPlaceholder: 'Destino final',
+          viaPlaceholder: 'Ponto intermediário {viaNumber}',
+          instructions: 'Instruções da Rota'
+        },
+        units: {
+          kilometers: 'km',
+          meters: 'm',
+          hours: 'h',
+          minutes: 'min',
+          seconds: 's'
+        }
+      };
       let routingControl = null;   // Controle de rota do LRM
       let marcadorUsuario = null;  // Marcador de localização do usuário
 
-      // ---- 1. Inicializar mapa (apenas uma vez) ----
       function inicializarMapa() {
         if (map) return;
         map = L.map("mapaRota", {
@@ -178,19 +270,13 @@
         }).addTo(map);
       }
 
-      // ---- 2. Criar rota interativa + painel de instruções ----
       function criarRotaInterativa(latOri, lngOri, latDest, lngDest) {
-        // Mostra “Carregando…” no painel
         loadingInstrucoes.classList.remove("hidden");
         listaInstrucoes.classList.add("hidden");
-
-        // Remove controle de rota anterior, se existir
         if (routingControl) {
           map.removeControl(routingControl);
           routingControl = null;
         }
-
-        // Adiciona novo controle de rota (Leaflet Routing Machine)
         routingControl = L.Routing.control({
           waypoints: [
             L.latLng(latOri, lngOri),
@@ -199,11 +285,12 @@
           router: L.Routing.osrmv1({
             serviceUrl: "https://router.project-osrm.org/route/v1"
           }),
+          language: 'pt',
+          localization: ptCustomLocalization,
           lineOptions: {
             styles: [{ color: "#1976D2", weight: 5 }]
           },
           createMarker: function(i, wp) {
-            // Marcadores de origem e destino são arrastáveis
             const icon = L.icon({
               iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
               iconSize: [25, 41],
@@ -216,11 +303,9 @@
             marker.on("dragend", function(e) {
               const novaPos = e.target.getLatLng();
               if (i === 0) {
-                // Origem arrastada
                 const dest = routingControl.getWaypoints()[1].latLng;
                 criarRotaInterativa(novaPos.lat, novaPos.lng, dest.lat, dest.lng);
               } else if (i === 1) {
-                // Destino arrastado
                 const ori = routingControl.getWaypoints()[0].latLng;
                 criarRotaInterativa(ori.lat, ori.lng, novaPos.lat, novaPos.lng);
               }
@@ -236,42 +321,31 @@
           addWaypoints: false
         }).addTo(map);
 
-        // Aguarda rota ser encontrada
+        console.log('LRM Localization:', routingControl.options.localization); // LINHA DE DEBUG AQUI
+
         routingControl.on("routesfound", function(e) {
           const rota = e.routes[0];
-          listaInstrucoes.innerHTML = "";  // limpa instruções anteriores
-
+          listaInstrucoes.innerHTML = "";
           rota.instructions.forEach((instrucao, index) => {
-            // Container para cada passo
             const stepDiv = document.createElement("div");
             stepDiv.classList.add("instrucao-item", "mb-3");
-
-            // Texto da instrução
             const texto = document.createElement("p");
             texto.classList.add("font-medium", "text-gray-800", "text-xs", "sm:text-sm");
             texto.textContent = `${index + 1}. ${instrucao.text}`;
             stepDiv.appendChild(texto);
-
-            // Detalhes (distância e tempo)
             const detalhes = document.createElement("p");
             detalhes.classList.add("text-gray-600", "text-[10px]", "sm:text-xs");
             const distanciaKm = (instrucao.distance / 1000).toFixed(1);
             const tempoMin = Math.round(instrucao.time / 60);
             detalhes.textContent = `Distância: ${distanciaKm} km • Tempo: ${tempoMin} min`;
             stepDiv.appendChild(detalhes);
-
             listaInstrucoes.appendChild(stepDiv);
           });
-
-          // Esconde “Carregando…” e mostra instruções
           loadingInstrucoes.classList.add("hidden");
           listaInstrucoes.classList.remove("hidden");
-
-          // Sintetiza voz para instruções
           falarInstrucoesComVoz(rota.instructions);
         });
 
-        // Adiciona marcador de localização do usuário
         if (!marcadorUsuario) {
           marcadorUsuario = L.marker([latOri, lngOri], {
             icon: L.icon({
@@ -282,12 +356,7 @@
               shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
               shadowSize: [41, 41]
             })
-          })
-            .addTo(map)
-            .bindPopup("Você está aqui")
-            .openPopup();
-
-          // Atualiza posição a cada 5s
+          }).addTo(map).bindPopup("Você está aqui").openPopup();
           setInterval(() => {
             navigator.geolocation.getCurrentPosition(
               pos => {
@@ -295,7 +364,7 @@
                 const lngAtual = pos.coords.longitude;
                 marcadorUsuario.setLatLng([latAtual, lngAtual]);
               },
-              () => { /* Erros ignorados pontualmente */ }
+              () => { /* Erros ignorados */ }
             );
           }, 5000);
         } else {
@@ -303,7 +372,6 @@
         }
       }
 
-      // ---- 3. Web Speech API para instruções ----
       function falarInstrucoesComVoz(instrucoes) {
         if (!("speechSynthesis" in window)) return;
         window.speechSynthesis.cancel();
@@ -316,7 +384,6 @@
         });
       }
 
-      // ---- 4. Clique nos botões “⤴ Rota” ----
       botoesRota.forEach(botao => {
         botao.addEventListener("click", function() {
           const card = botao.closest(".restaurante-card");
@@ -324,17 +391,12 @@
           const latDestino = parseFloat(card.getAttribute("data-lat"));
           const lngDestino = parseFloat(card.getAttribute("data-lng"));
           const nomeRestaurante = card.getAttribute("data-nome") || "";
-
           if (isNaN(latDestino) || isNaN(lngDestino)) {
             alert("Coordenadas inválidas.");
             return;
           }
-
-          // Exibe o modal
           mapaRotaContainer.classList.remove("hidden");
           inicializarMapa();
-
-          // Tenta obter geolocalização do entregador
           if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
               position => {
@@ -345,76 +407,41 @@
               error => {
                 console.warn("Erro de geolocalização:", error.message);
                 alert("Não foi possível obter sua localização. Exibindo apenas o ponto do restaurante.");
-
-                // Centraliza mapa no restaurante (zoom 15)
                 map.setView([latDestino, lngDestino], 15);
-                L.marker([latDestino, lngDestino])
-                  .addTo(map)
-                  .bindPopup(nomeRestaurante || "Destino")
-                  .openPopup();
-
-                // Mostra mensagem no painel
+                L.marker([latDestino, lngDestino]).addTo(map).bindPopup(nomeRestaurante || "Destino").openPopup();
                 loadingInstrucoes.classList.add("hidden");
-                listaInstrucoes.innerHTML = `
-                  <p class="text-gray-500 italic text-xs sm:text-sm">
-                    Permita geolocalização para ver a rota completa.
-                  </p>`;
+                listaInstrucoes.innerHTML = `<p class="text-gray-500 italic text-xs sm:text-sm">Permita geolocalização para ver a rota completa.</p>`;
                 listaInstrucoes.classList.remove("hidden");
               },
-              {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-              }
+              { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
           } else {
             alert("Seu navegador não suporta geolocalização. Exibindo apenas o ponto do restaurante.");
-
-            // Centraliza mapa no restaurante
             map.setView([latDestino, lngDestino], 15);
-            L.marker([latDestino, lngDestino])
-              .addTo(map)
-              .bindPopup(nomeRestaurante || "Destino")
-              .openPopup();
-
+            L.marker([latDestino, lngDestino]).addTo(map).bindPopup(nomeRestaurante || "Destino").openPopup();
             loadingInstrucoes.classList.add("hidden");
-            listaInstrucoes.innerHTML = `
-              <p class="text-gray-500 italic text-xs sm:text-sm">
-                Ative geolocalização para navegação.
-              </p>`;
+            listaInstrucoes.innerHTML = `<p class="text-gray-500 italic text-xs sm:text-sm">Ative geolocalização para navegação.</p>`;
             listaInstrucoes.classList.remove("hidden");
           }
         });
       });
 
-      // ---- 5. Botão “×” para fechar o modal e limpar rota ----
       fecharMapaRota.addEventListener("click", function() {
         mapaRotaContainer.classList.add("hidden");
-
-        // Remove controle de rota, se existir
         if (routingControl) {
           map.removeControl(routingControl);
           routingControl = null;
         }
-
-        // Remove marcadores e linhas do mapa
         map.eachLayer(layer => {
           if (layer instanceof L.Marker || layer instanceof L.Polyline) {
             map.removeLayer(layer);
           }
         });
-
-        // Cancela qualquer síntese de voz em andamento
         if ("speechSynthesis" in window) {
           window.speechSynthesis.cancel();
         }
-
-        // Restaura mensagem inicial no painel
         loadingInstrucoes.classList.add("hidden");
-        listaInstrucoes.innerHTML = `
-          <p class="text-gray-500 italic text-xs sm:text-sm">
-            Clique em “⤴ Rota” para iniciar a navegação.
-          </p>`;
+        listaInstrucoes.innerHTML = `<p class="text-gray-500 italic text-xs sm:text-sm">Clique em “⤴ Rota” para iniciar a navegação.</p>`;
       });
     });
   </script>

@@ -1,0 +1,193 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bem-vindo ao MotoTec</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden; /* Para garantir que não haja barras de rolagem */
+            position: relative; /* Necessário para o posicionamento absoluto do motoboy */
+            min-height: 100vh;
+            display: flex; /* Para centralizar o motoboy se necessário, embora a animação o mova */
+            align-items: center;
+            justify-content: center;
+        }
+
+        #map-splash-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0; /* Mapa fica no fundo */
+        }
+
+        .motoboy-container {
+            position: absolute; /* Posição absoluta para flutuar sobre o mapa */
+            z-index: 10; /* Motoboy fica na frente do mapa */
+            width: 150px; /* Ajuste conforme o tamanho da sua imagem */
+            height: auto;
+            /* A animação controlará a posição inicial e o movimento */
+            animation: rideAcross 3.5s ease-in-out forwards;
+            opacity: 0; /* Começa invisível, animação controla a opacidade */
+            /* Garantir que o container comece onde a animação espera */
+            left: 0; /* A animação usa translateX, então left:0 é um bom ponto de partida */
+            top: 50%; /* A animação usa translateY, então top:50% é um bom ponto de partida vertical */
+        }
+
+        .motoboy-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        @keyframes rideAcross {
+            0% {
+                transform: translateX(-150px) translateY(-50%) translateY(20vh) rotate(-15deg); /* Ajustado para começar fora da tela à esquerda */
+                opacity: 0;
+            }
+            20% {
+                opacity: 1;
+                transform: translateX(calc(20vw - 75px)) translateY(-50%) translateY(10vh) rotate(0deg); /* 75px é metade da largura do container */
+            }
+            80% {
+                transform: translateX(calc(80vw - 75px)) translateY(-50%) translateY(-10vh) rotate(5deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(calc(100vw + 150px)) translateY(-50%) translateY(-15vh) rotate(15deg); /* Ajustado para sair completamente */
+                opacity: 0;
+            }
+        }
+
+        .mototec-text-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 15; /* Acima do motoboy e do mapa */
+            /* A opacidade e animação agora são controladas pelo filho .mototec-text */
+        }
+
+        .mototec-text {
+            font-family: 'Brush Script MT', 'cursive', sans-serif; /* Fonte cursiva */
+            font-size: 5.5rem; /* Aumentar um pouco para cursiva */
+            font-weight: normal; /* Fontes cursivas geralmente ficam melhores com peso normal */
+            color: #000000; /* Cor preta */
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.3); /* Sombra clara para contraste com mapa escuro, se houver */
+            display: inline-block;
+            position: relative;
+            opacity: 0; /* Começa invisível */
+            white-space: nowrap;
+            /* transform: translateY(0); // Não mais necessário para escrita */
+            animation: writeAndRevealEffect 2.0s ease-out forwards;
+            animation-delay: 1.6s; /* Adiantado em 1.6s, resultando em 2.2s de delay */
+        }
+
+        @keyframes writeAndRevealEffect {
+            0% {
+                opacity: 0;
+                clip-path: inset(0 100% 0 0); /* Começa totalmente clipado da direita */
+            }
+            30% { /* Torna visível mais rapidamente para dar tempo de ler */
+                opacity: 1;
+            }
+            100% {
+                opacity: 1;
+                clip-path: inset(0 0 0 0); /* Totalmente revelado */
+            }
+        }
+
+        #flash-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: white;
+            opacity: 0;
+            z-index: 2000; /* Mais alto z-index para cobrir tudo */
+            pointer-events: none; /* Não interfere com cliques (embora não haja cliques aqui) */
+            animation: flashAndHoldBeforeRedirect 0.5s ease-out forwards;
+            animation-delay: 4.5s; /* Começa 1s antes do redirect de 10s */
+        }
+
+        @keyframes flashAndHoldBeforeRedirect {
+            0% { opacity: 0; }
+            50% { opacity: 0.95; } /* Flash intenso */
+            100% { opacity: 0.95; } /* Mantém o flash até o redirect */
+        }
+    </style>
+</head>
+<body>
+    <div id="map-splash-background"></div>
+    
+    <div class="motoboy-container">
+        <img src="{% static 'imagem/motoboy.png' %}" alt="Motoboy MotoTec" class="motoboy-image">
+    </div>
+
+    <div class="mototec-text-container">
+        <span class="mototec-text">MotoTec</span>
+    </div>
+
+    <div id="flash-overlay"></div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Inicializa o mapa em Praia Grande (lat=-24.0167, lng=-46.4667), zoom 13
+            const map = L.map("map-splash-background", {
+                zoomControl: false // Remove os controles de zoom
+            }).setView([-24.0167, -46.4667], 13);
+
+            // Adiciona camada de tiles (OpenStreetMap)
+            L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(map);
+
+            /* Outras opções de tiles que você pode testar:
+            // CartoDB Dark Matter (Escuro)
+            // L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+            //     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            //     subdomains: 'abcd',
+            //     maxZoom: 20
+            // }).addTo(map);
+
+            // Esri WorldStreetMap
+            // L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
+            //     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
+            // }).addTo(map);
+
+            // Esri WorldImagery (Satélite)
+            // L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+            //     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            // }).addTo(map);
+            */
+
+            // Desabilita todas as interações do mapa
+            map.dragging.disable();
+            map.touchZoom.disable();
+            map.doubleClickZoom.disable();
+            map.scrollWheelZoom.disable();
+            map.boxZoom.disable();
+            map.keyboard.disable();
+            if (map.tap) {
+                map.tap.disable();
+            }
+            document.getElementById('map-splash-background').style.cursor = 'default';
+        });
+
+        // Redirecionamento após o tempo definido
+        setTimeout(function() {
+            window.location.href = "{% url 'home' %}";
+        }, 5000); // Mantido o delay de 10 segundos
+    </script>
+</body>
+</html>

@@ -3,7 +3,367 @@
 
 {% block title %}Início – MotoTec{% endblock title %}
 
+{% block extra_css %}
+<style>
+  /* Estilos para os pontos de calor */
+  .heat-point-marker,
+  .leaflet-interactive.leaflet-marker-icon.leaflet-zoom-animated.leaflet-interactive {
+    cursor: pointer !important;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  /* Estilo para os novos marcadores de calor */
+  .custom-heat-marker {
+    transition: all 0.3s ease;
+  }
+  
+  .custom-heat-marker .heat-pulse {
+    position: relative;
+    animation: pulse 2s infinite;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    text-shadow: 0 0 3px rgba(0,0,0,0.5);
+    box-shadow: 0 0 10px currentColor;
+    border: 2px solid white;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .custom-heat-marker .heat-pulse:hover {
+    transform: scale(1.1);
+    z-index: 1000 !important;
+  }
+  
+  /* Animação de pulso */
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(255, 0, 0, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+    }
+  }
+  
+  /* Estilo para o tooltip personalizado */
+  .leaflet-tooltip.custom-tooltip {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    color: #333;
+    font-weight: 500;
+  }
+  
+  .leaflet-tooltip.custom-tooltip:before {
+    border-top-color: #fff;
+  }
+  
+  /* Garante que o mapa fique atrás de outros elementos */
+  .leaflet-container {
+    z-index: 1 !important;
+  }
+  
+  /* Garante que o modal fique sempre visível */
+  body > #modalNavegacao {
+    z-index: 10000 !important; /* Valor alto para garantir que fique acima de tudo */
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background-color: rgba(0, 0, 0, 0.5) !important;
+  }
+  
+  /* Garante que o conteúdo do modal fique acima do overlay */
+  #modalNavegacao > div {
+    position: relative;
+    z-index: 10001 !important;
+  }
+  
+  /* Animações para o modal de confirmação */
+  .transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+  
+  .transition-opacity {
+    transition-property: opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+  
+  .scale-95 {
+    transform: scale(0.95);
+  }
+  
+  .scale-100 {
+    transform: scale(1);
+  }
+  
+  .opacity-0 {
+    opacity: 0;
+  }
+  
+  .opacity-100 {
+    opacity: 1;
+  }
+  
+  /* Cores personalizadas */
+  .bg-mototec-blue {
+    background-color: #2563eb; /* Azul padrão - pode ser ajustado conforme necessário */
+  }
+  
+  .hover\:bg-blue-700:hover {
+    background-color: #1d4ed8;
+  }
+  
+  .focus\:ring-blue-500:focus {
+    --tw-ring-color: #3b82f6;
+  }
+  
+  .tooltip {
+    transition: opacity 0.2s;
+  }
+  
+  .custom-heat-point:hover .tooltip {
+    opacity: 1;
+  }
+  
+  .heat-point-marker:hover,
+  .leaflet-interactive.leaflet-marker-icon.leaflet-zoom-animated.leaflet-interactive:hover {
+    filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.4)) !important;
+    transform: scale(1.1) !important;
+    z-index: 1000 !important;
+    fill-opacity: 0.9 !important;
+    stroke-opacity: 1 !important;
+  }
+  
+  /* Força a manutenção das cores dos pontos */
+  .leaflet-interactive {
+    fill-opacity: 0.8 !important;
+    stroke: #000 !important;
+    stroke-width: 2px !important;
+    stroke-opacity: 0.9 !important;
+  }
+  
+  .leaflet-interactive:hover {
+    fill-opacity: 0.9 !important;
+    stroke-opacity: 1 !important;
+  }
+  
+  /* Garante que os círculos mantenham suas cores */
+  .leaflet-marker-icon.leaflet-interactive {
+    background: none !important;
+    border: none !important;
+  }
+  
+  /* Estilos específicos para o botão Focar Praia Grande */
+  #focarPraiaGrande {
+    color: #000000;
+    transition: all 0.3s ease;
+  }
+  
+  #focarPraiaGrande:hover,
+  #focarPraiaGrande:active {
+    color: #000000;
+  }
+  
+  /* Animações personalizadas */
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.1);
+    }
+    50% {
+      transform: scale(1.03);
+      box-shadow: 0 0 0 5px rgba(0, 0, 0, 0.05);
+    }
+  }
+  
+  .animate-pulse {
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  /* Estilos para os tooltips */
+  .leaflet-tooltip {
+    position: absolute;
+    padding: 6px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    color: #333;
+    white-space: nowrap;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    pointer-events: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  
+  /* Estilo para o tooltip de informações */
+  .leaflet-tooltip.info-tooltip {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #38a169;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: #2d3748;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    white-space: nowrap;
+    text-align: center;
+    pointer-events: none;
+  }
+  
+  /* Estilo para o tooltip de interação */
+  .leaflet-tooltip.interacao-tooltip {
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid #38a169;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #2d3748;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    white-space: nowrap;
+    text-align: center;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    opacity: 0;
+  }
+  
+  .leaflet-tooltip.interacao-tooltip:before {
+    border-top-color: #38a169;
+  }
+  
+  .leaflet-tooltip-top:before, 
+  .leaflet-tooltip-bottom:before, 
+  .leaflet-tooltip-left:before, 
+  .leaflet-tooltip-right:before {
+    border: none;
+  }
+  
+  /* Melhora a visibilidade dos tooltips */
+  .leaflet-tooltip.custom-tooltip {
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    color: #333;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+  }
+  
+  .leaflet-tooltip.custom-tooltip:before {
+    border-top-color: #fff;
+    bottom: -7px;
+  }
+  
+  /* Melhora a interação em dispositivos touch */
+  @media (hover: none) {
+    .heat-point-marker {
+      stroke-width: 3px !important;
+    }
+  }
+  
+  /* Animações */
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes slideInUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  /* Estilos para o modal */
+  .modal-enter {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+  
+  .modal-exit {
+    animation: fadeIn 0.3s ease-out reverse forwards;
+  }
+  
+  .modal-content-enter {
+    animation: slideInUp 0.3s ease-out forwards;
+  }
+  
+  /* Loading spinner */
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+  
+  /* Animações de entrada */
+  .animate-fade-in {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  
+  /* Melhora o foco para acessibilidade */
+  [role="button"]:focus-visible,
+  button:focus-visible,
+  [tabindex="0"]:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+  
+  /* Estilo para quando o modal estiver aberto */
+  body.modal-open {
+    overflow: hidden;
+    padding-right: 15px; /* Evita que o conteúdo pule quando a barra de rolagem some */
+  }
+  
+  /* Melhora a acessibilidade do modal */
+  [role="dialog"][aria-modal="true"] {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s;
+  }
+  
+  [role="dialog"][aria-modal="true"][aria-hidden="false"] {
+    opacity: 1;
+    visibility: visible;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
+
 <!-- 1. Seção Hero (compacta) -->
 <section class="bg-white px-4 pt-4 pb-2 shadow-sm">
   <div class="max-w-md mx-auto text-center">
@@ -33,10 +393,13 @@
   </div>
 </section>
 
-<!-- 2. Seção Mapa (altura fixa menor) -->
+<!-- 2. Seção Mapa (altura fixa) -->
 <section class="relative bg-mototec-bege">
-  <div class="w-full h-[250px] sm:h-[350px] md:h-[450px] lg:h-[550px] relative mx-auto">
+  <div class="relative w-full h-[calc(100vh-4rem)]">
+    <!-- Mapa -->
     <div id="map" class="w-full h-full"></div>
+    <!-- Container para os pontos personalizados -->
+    <div id="custom-points-container" class="absolute inset-0 pointer-events-none"></div>
 
     {% if not user.is_authenticated %}
       <!-- Overlay bloqueando interação: ocupa todo o mapa -->
@@ -56,14 +419,57 @@
     {% endif %}
 
     {% if user.is_authenticated %}
-      <!-- Botão “Focar em Praia Grande” sobre o mapa -->
-      <button id="focusPraiaGrande"
-              class="absolute bottom-4 right-4 z-20 bg-white border border-mototec-teal text-mototec-teal text-xs px-2 py-1 rounded-full shadow hover:bg-mototec-teal hover:text-white transition">
-        ➤ Focar Praia Grande
-      </button>
+      <!-- Botão "Focar em Praia Grande" será posicionado fora do mapa -->
     {% endif %}
   </div>
+  
+  <!-- Botão "Focar em Praia Grande" posicionado abaixo do mapa -->
+  {% if user.is_authenticated %}
+    <div class="flex justify-end mt-2 pr-2">
+      <button id="focarPraiaGrande" class="bg-white px-4 py-2 rounded-lg shadow-md hover:bg-gray-100 transition-all duration-300 flex items-center text-black hover:text-black focus:text-black active:text-black focus:outline-none focus:ring-2 focus:ring-mototec-teal focus:ring-opacity-50 transform hover:scale-105 active:scale-95" onclick="focarPraiaGrande()">
+        <span class="mr-2">🗺️</span>
+        <span>Focar Praia Grande</span>
+      </button>
+    </div>
+  {% endif %}
 </section>
+
+<script>
+  // Função para focar em Praia Grande com animação
+  function focarPraiaGrande() {
+    // Verifica se o mapa está definido
+    if (typeof map !== 'undefined') {
+      // Adiciona classe de animação ao botão
+      const botao = document.getElementById('focarPraiaGrande');
+      botao.classList.add('animate-pulse');
+      
+      // Usa o mesmo método de inicialização do mapa
+      map.setView(
+        [-24.0167, -46.4667], // Mesmas coordenadas iniciais
+        13, // Mesmo nível de zoom
+        {
+          animate: true,
+          duration: 1.5,
+          easeLinearity: 0.25,
+          noMoveStart: true
+        }
+      );
+      
+      // Remove a classe de animação após um pequeno atraso
+      setTimeout(() => {
+        botao.classList.remove('animate-pulse');
+      }, 1800); // Tempo ligeiramente maior que a duração da animação
+    }
+  }
+  
+  // Adiciona o evento de clique ao botão
+  document.addEventListener('DOMContentLoaded', function() {
+    const botao = document.getElementById('focarPraiaGrande');
+    if (botao) {
+      botao.addEventListener('click', focarPraiaGrande);
+    }
+  });
+</script>
 {% endblock %}
 
 {% block scripts %}
@@ -71,59 +477,2291 @@
   <!-- Leaflet CSS/JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet-heat@0.2.0/dist/leaflet-heat.js"></script>
+  <!-- Leaflet Heatmap Plugin -->
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
+  <style>
+    /* Estilos para o modal */
+    #restauranteModal {
+      transition: opacity 0.3s ease-in-out;
+    }
+    #restauranteModal:not(.hidden) {
+      display: flex !important;
+    }
+    #restauranteModal > div {
+      transform: translateY(-20px);
+      transition: transform 0.3s ease-in-out;
+    }
+    #restauranteModal:not(.hidden) > div {
+      transform: translateY(0);
+    }
+    /* Estilos para os popups e tooltips */
+    .leaflet-popup-content-wrapper {
+      border-radius: 8px !important;
+      padding: 0 !important;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .leaflet-popup-content {
+      margin: 0 !important;
+      width: auto !important;
+    }
+    
+    .leaflet-popup-tip-container {
+      margin-top: -1px;
+    }
+    
+    .custom-tooltip {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      white-space: nowrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .leaflet-tooltip-top:before {
+      border-top-color: #fff;
+    }
+  </style>
+  
   {% if user.is_authenticated %}
   <script>
     document.addEventListener("DOMContentLoaded", function() {
       // Inicializa o mapa, definindo vista inicial em Praia Grande
       const map = L.map("map", {
-        zoomControl: false  // remove botões de zoom para simplicidade no mobile
+        zoomControl: true,
+        zoomControlOptions: {
+          position: 'topright'
+        },
+        preferCanvas: true  // Melhora performance com muitos marcadores
       }).setView([-24.0167, -46.4667], 13);
 
       // Adiciona camada de tiles do OpenStreetMap
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap contributors"
+        attribution: " OpenStreetMap contributors"
       }).addTo(map);
 
-      // Função para desenhar heatmap
-      function atualizarMapa() {
-        fetch("/api/demanda/")
-          .then(res => res.json())
-          .then(data => {
-            // Remove marcadores anteriores
-            map.eachLayer(layer => {
-              if (layer instanceof L.CircleMarker) {
-                map.removeLayer(layer);
-              }
-            });
-            // Desenha novos círculos
-            if (data.dados && data.dados.length) {
-              data.dados.forEach(ponto => {
-                let r = Math.min(4 + ponto.restaurantes * 1.5, 18);
-                L.circleMarker([ponto.lat, ponto.lng], {
-                  radius: r,
-                  fillColor: ponto.cor,
-                  color: "#000",
-                  weight: 1,
-                  opacity: 1,
-                  fillOpacity: 0.75
-                }).addTo(map);
-              });
-            }
-          })
-          .catch(e => console.error(e));
+      let heatLayer = null;
+      let markersLayer = L.layerGroup().addTo(map);
+
+      // Função para obter cor baseada na intensidade (azul para baixa, amarelo para média, vermelho para alta)
+      function getColorByIntensity(intensidade) {
+        // Garante que a intensidade esteja entre 0 e 1
+        const intensidadeAjustada = Math.min(Math.max(intensidade, 0), 1);
+        
+        // Mapeia a intensidade para um gradiente de cores mais visível
+        if (intensidadeAjustada < 0.2) {
+          return '#0000ff'; // Azul - Baixa intensidade
+        } else if (intensidadeAjustada < 0.4) {
+          return '#00ffff'; // Ciano - Média-baixa
+        } else if (intensidadeAjustada < 0.6) {
+          return '#00ff00'; // Verde - Média
+        } else if (intensidadeAjustada < 0.8) {
+          return '#ffff00'; // Amarelo - Média-alta
+        } else {
+          return '#ff0000'; // Vermelho - Alta intensidade
+        }
       }
 
-      // Carrega inicialmente e depois a cada 30s
-      atualizarMapa();
-      setInterval(atualizarMapa, 30000);
+      // Função para formatar o popup de um grupo de restaurantes
+      function getPopupContent(grupo) {
+        // Ordena restaurantes por número de pedidos (mais pedidos primeiro)
+        const restaurantesOrdenados = [...grupo.restaurantes].sort((a, b) => b.pedidos - a.pedidos);
+        
+        // Limita a 5 restaurantes para não sobrecarregar o popup
+        const exibirRestaurantes = restaurantesOrdenados.slice(0, 5);
+        
+        // Cria o conteúdo do popup com Tailwind CSS
+        let content = `
+          <div class="w-64 max-h-80 overflow-y-auto">
+            <!-- Cabeçalho -->
+            <div class="bg-mototec-teal text-white p-3 rounded-t-lg">
+              <h3 class="font-bold text-lg">
+                ${grupo.quantidade_restaurantes} Restaurante${grupo.quantidade_restaurantes > 1 ? 's' : ''} Próximos
+              </h3>
+              <div class="flex items-center text-sm mt-1">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+                <span>${grupo.total_pedidos} Pedido${grupo.total_pedidos !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+            
+            <!-- Lista de Restaurantes -->
+            <div class="divide-y divide-gray-100">
+        `;
+        
+        // Adiciona cada restaurante
+        exibirRestaurantes.forEach((rest, index) => {
+          const intensity = rest.pedidos / Math.max(...restaurantesOrdenados.map(r => r.pedidos));
+          const color = getColorByIntensity(intensity);
+          
+          content += `
+            <div class="p-2 hover:bg-gray-50 transition-colors">
+              <div class="flex justify-between items-start">
+                <div>
+                  <h4 class="font-medium text-gray-900">${rest.nome}</h4>
+                  <div class="flex items-center mt-1">
+                    <span class="inline-block w-2 h-2 rounded-full mr-1" style="background-color: ${color}"></span>
+                    <span class="text-xs text-gray-600">${rest.pedidos} pedido${rest.pedidos !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+                <button class="text-mototec-azul hover:text-mototec-azul-dark text-xs font-medium" 
+                        onclick="abrirRota(${grupo.lat}, ${grupo.lng}, '${rest.nome.replace(/'/g, "\\'")}')">
+                  Rota
+                </button>
+              </div>
+            </div>
+          `;
+        });
+        
+        // Adiciona contador de restaurantes restantes, se houver
+        if (grupo.quantidade_restaurantes > 5) {
+          content += `
+            <div class="p-2 text-center text-xs text-gray-500 bg-gray-50">
+              +${grupo.quantidade_restaurantes - 5} outro${grupo.quantidade_restaurantes - 5 > 1 ? 's' : ''} restaurante${grupo.quantidade_restaurantes - 5 > 1 ? 's' : ''}
+            </div>
+          `;
+        }
+        
+        // Botão de rota para o grupo todo
+        content += `
+            </div>
+            <div class="p-3 bg-gray-50 border-t border-gray-100 rounded-b-lg">
+              <button class="w-full bg-mototec-azul hover:bg-mototec-azul-dark text-white py-2 px-4 rounded-md text-sm font-medium flex items-center justify-center"
+                      onclick="abrirRota(${grupo.lat}, ${grupo.lng}, '${exibirRestaurantes[0].nome.replace(/'/g, "\\'")}')">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                Ver rota para o local
+              </button>
+            </div>
+          </div>
+        `;
+        
+        return content;
+      }
 
-      // Botão para focar em Praia Grande
-      document.getElementById("focusPraiaGrande").addEventListener("click", () => {
-        map.setView([-24.0167, -46.4667], 13);
+      // Função para desenhar o heatmap e os marcadores
+      // Cria um ícone personalizado para os pontos de calor
+      function criarIconePersonalizado(quantidade, intensidade) {
+        const tamanho = 30 + (Math.min(quantidade, 5) * 4);
+        const cor = getColorByIntensity(intensidade);
+        
+        return L.divIcon({
+          className: 'custom-heat-marker',
+          html: `
+            <div class="heat-pulse" style="
+              background: ${cor};
+              width: ${tamanho}px;
+              height: ${tamanho}px;
+              border-radius: 50%;
+              position: relative;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              font-weight: bold;
+              font-size: ${Math.max(12, Math.min(16, tamanho/2))}px;
+              box-shadow: 0 0 10px ${cor};
+              border: 2px solid white;
+              cursor: pointer;
+              transition: all 0.3s ease;
+            ">
+              <div class="heat-count">${quantidade}</div>
+            </div>
+          `,
+          iconSize: [tamanho, tamanho],
+          iconAnchor: [tamanho/2, tamanho/2],
+          popupAnchor: [0, -tamanho/2]
+        });
+      }
+      
+      // Função para mostrar o modal de confirmação
+      function mostrarConfirmacaoNavegacao(grupo) {
+        const modal = document.getElementById('confirmacaoNavegacaoModal');
+        const modalText = modal.querySelector('.modal-body');
+        
+        modalText.innerHTML = `
+          <p>Deseja navegar até este local?</p>
+          <div class="mt-3">
+            <p><i class="fas fa-utensils me-2"></i> ${grupo.quantidade_restaurantes || 0} Restaurante${grupo.quantidade_restaurantes !== 1 ? 's' : ''}</p>
+            <p><i class="fas fa-shopping-bag me-2"></i> ${grupo.total_pedidos || 0} Pedido${grupo.total_pedidos !== 1 ? 's' : ''} recente${grupo.total_pedidos !== 1 ? 's' : ''}</p>
+          </div>
+        `;
+        
+        const modalInstance = new bootstrap.Modal(modal);
+        modalInstance.show();
+        
+        // Configura o botão de confirmação
+        const btnConfirmar = modal.querySelector('.btn-primary');
+        btnConfirmar.onclick = function() {
+          // Navega para o ponto no mapa com animação
+          map.flyTo([grupo.lat, grupo.lng], 16, {
+            animate: true,
+            duration: 1
+          });
+          
+          // Fecha o modal
+          modalInstance.hide();
+          
+          // Mostra um popup no marcador
+          if (window.ultimoPopup) {
+            window.ultimoPopup.closePopup();
+          }
+          window.ultimoPopup = L.popup()
+            .setLatLng([grupo.lat, grupo.lng])
+            .setContent(`
+              <div class="p-2">
+                <strong>${grupo.quantidade_restaurantes || 0} Restaurante${grupo.quantidade_restaurantes !== 1 ? 's' : ''}</strong><br>
+                ${grupo.total_pedidos || 0} Pedido${grupo.total_pedidos !== 1 ? 's' : ''} recente${grupo.total_pedidos !== 1 ? 's' : ''}
+              </div>
+            `)
+            .openOn(map);
+        };
+      }
+      
+      function atualizarMapaCalor() {
+        console.log('Iniciando atualização do mapa de calor...');
+        
+        // Mostra um indicador de carregamento
+        const loadingIndicator = L.control({position: 'topright'});
+        loadingIndicator.onAdd = function() {
+          const div = L.DomUtil.create('div', 'bg-white p-2 rounded shadow-md text-sm');
+          div.innerHTML = 'Atualizando...';
+          return div;
+        };
+        
+        // Remove o indicador anterior se existir
+        if (window.loadingIndicator) {
+          window.loadingIndicator.remove();
+        }
+        window.loadingIndicator = loadingIndicator;
+        loadingIndicator.addTo(map);
+        
+        // Remove a camada de marcadores anterior se existir
+        if (window.markersLayer) {
+          map.removeLayer(window.markersLayer);
+        }
+        window.markersLayer = L.layerGroup().addTo(map);
+
+        // Faz a requisição para a API
+        const apiUrl = "/api/demanda/";
+        console.log(`Fazendo requisição para ${apiUrl}...`);
+        
+        // Adiciona um timestamp para evitar cache
+        const timestamp = new Date().getTime();
+        const urlWithTimestamp = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}_=${timestamp}`;
+        
+        fetch(urlWithTimestamp, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          },
+          cache: 'no-store'
+        })
+        .then(response => {
+          console.log('Resposta recebida. Status:', response.status);
+          if (!response.ok) {
+            console.error('Erro na resposta da API:', response.status, response.statusText);
+            throw new Error(`Erro ao carregar dados: ${response.status} ${response.statusText}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Dados recebidos da API:', data);
+          if (data.status !== 'ok' || !data.data) {
+            console.error('Dados inválidos recebidos:', data);
+            throw new Error('Dados inválidos');
+          }
+          
+          if (data.data.length === 0) {
+            console.warn('A API retornou uma lista vazia de pontos de calor');
+          } else {
+            console.log(`Recebidos ${data.data.length} pontos de calor`);
+          }
+
+          // Remove a camada de calor anterior se existir
+          if (window.heatLayer) {
+            map.removeLayer(window.heatLayer);
+            window.heatLayer = null;
+          }
+          
+          const pontosCalor = [];
+          const bounds = [];
+          
+          // Processa cada grupo de restaurantes
+          data.data.forEach(grupo => {
+            if (!grupo || typeof grupo.lat === 'undefined' || typeof grupo.lng === 'undefined') {
+              console.warn('Grupo inválido:', grupo);
+              return;
+            }
+            
+            // Adiciona ao heatmap
+            pontosCalor.push([
+              grupo.lat, 
+              grupo.lng, 
+              grupo.intensidade * 10 // Ajusta a intensidade para melhor visualização
+            ]);
+            
+            // Cria um marcador personalizado
+            try {
+              const marker = L.marker(
+                [grupo.lat, grupo.lng],
+                {
+                  icon: criarIconePersonalizado(
+                    grupo.quantidade_restaurantes || 1,
+                    grupo.intensidade || 0.5
+                  ),
+                  interactive: true,
+                  title: `${grupo.quantidade_restaurantes || 0} Restaurantes`
+                }
+              );
+              
+              // Adiciona evento de clique com tratamento de erro
+              marker.on('click', function(e) {
+                console.log('Marcador clicado:', grupo);
+                try {
+                  // Previne a propagação do evento para evitar conflitos
+                  if (e.originalEvent) {
+                    e.originalEvent.stopPropagation();
+                    e.originalEvent.preventDefault();
+                  }
+                  
+                  // Garante que o grupo seja passado corretamente
+                  if (grupo && typeof grupo === 'object') {
+                    console.log('Chamando mostrarConfirmacaoNavegacao com grupo:', grupo);
+                    mostrarConfirmacaoNavegacao(grupo);
+                  } else {
+                    console.error('Grupo inválido ao clicar no marcador:', grupo);
+                  }
+                } catch (error) {
+                  console.error('Erro ao processar clique no marcador:', error);
+                }
+              });
+              
+              // Adiciona evento de toque para dispositivos móveis
+              marker.on('touchstart', function(e) {
+                if (e.originalEvent) {
+                  e.originalEvent.stopPropagation();
+                }
+              });
+              
+              // Adiciona tooltip
+              marker.bindTooltip(
+                `<div class="text-center">
+                  <strong>${grupo.quantidade_restaurantes || 0} Restaurante${grupo.quantidade_restaurantes !== 1 ? 's' : ''}</strong><br>
+                  ${grupo.total_pedidos || 0} Pedido${grupo.total_pedidos !== 1 ? 's' : ''} recente${grupo.total_pedidos !== 1 ? 's' : ''}
+                </div>`,
+                {
+                  direction: 'top',
+                  permanent: false,
+                  className: 'custom-tooltip',
+                  offset: [0, -20]
+                }
+              );
+              
+              // Adiciona o marcador à camada
+              marker.addTo(window.markersLayer);
+              
+              // Adiciona ao array de bounds para zoom
+              bounds.push([grupo.lat, grupo.lng]);
+              
+            } catch (e) {
+              console.error('Erro ao criar marcador:', e);
+            }
+          });
+          
+          // Cria a camada de calor
+          if (pontosCalor.length > 0) {
+            window.heatLayer = L.heatLayer(pontosCalor, {
+              radius: 25,
+              blur: 15,
+              maxZoom: 17,
+              gradient: {0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red'}
+            }).addTo(map);
+            
+            // Ajusta o zoom para mostrar todos os pontos
+            if (bounds.length > 0) {
+              map.fitBounds(bounds, { 
+                padding: [50, 50],
+                maxZoom: 15,
+                animate: true
+              });
+              
+              // Se houver apenas um ponto, ajusta o zoom para um nível razoável
+              if (data.data.length === 1) {
+                setTimeout(() => {
+                  map.setZoom(14);
+                }, 100);
+              }
+            }
+          } else {
+            console.warn('Nenhum ponto de calor válido para exibir');
+            // Define uma visualização padrão se não houver dados
+            map.setView([-23.9931, -46.3028], 12); // Coordenadas aproximadas de Praia Grande
+          }
+        })
+        .catch(error => {
+          console.error('Erro ao carregar dados do mapa de calor:', error);
+          
+          // Mostra mensagem de erro
+          const errorMsg = document.createElement('div');
+          errorMsg.className = 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4';
+          errorMsg.role = 'alert';
+          errorMsg.innerHTML = `
+            <p class="font-bold">Erro ao carregar o mapa de calor</p>
+            <p>${error.message || 'Erro desconhecido'}</p>
+            <button onclick="this.parentElement.remove()" class="mt-2 text-red-500 hover:text-red-700">
+              Fechar
+            </button>
+          `;
+          
+          const mapContainer = document.getElementById('map');
+          if (mapContainer) {
+            mapContainer.appendChild(errorMsg);
+          }
+          
+          // Define uma visualização padrão em caso de erro
+          map.setView([-23.9931, -46.3028], 12); // Coordenadas aproximadas de Praia Grande
+        })
+        .finally(() => {
+          // Remove o indicador de carregamento
+          if (window.loadingIndicator) {
+            try { 
+              map.removeControl(window.loadingIndicator);
+              window.loadingIndicator = null;
+            } catch (e) {}
+          }
+          console.log('Atualização do mapa concluída');
+        });
+      }
+
+      // Carrega os dados iniciais
+      atualizarMapaCalor();
+
+      // Função para testar a abertura do modal (usar apenas para depuração)
+      // Remova ou comente esta função em produção
+      /*
+      function testarModal() {
+        console.log('Testando abertura do modal...');
+        const dadosTeste = {
+          quantidade_restaurantes: 3,
+          total_pedidos: 15,
+          lat: -24.0167,
+          lng: -46.4667,
+          restaurantes: [
+            { nome: "Restaurante Teste 1", pedidos: 10, bairro: 'Centro' },
+            { nome: "Restaurante Teste 2", pedidos: 5, bairro: 'Boqueirão' },
+            { nome: 'Restaurante Teste 3', pedidos: 2, bairro: 'Tupi' }
+          ]
+        };
+        console.log('Chamando abrirModalDetalhes com:', dadosTeste);
+        
+        if (typeof window.abrirModalDetalhes === 'function') {
+          console.log('Função abrirModalDetalhes encontrada, chamando...');
+          window.abrirModalDetalhes(dadosTeste);
+        } else {
+          console.error('ERRO: Função abrirModalDetalhes não encontrada no escopo global');
+        }
+      }
+      */
+
+      // Atualiza os dados a cada 5 minutos
+      setInterval(atualizarMapaCalor, 5 * 60 * 1000);
+
+      // Configura o botão de foco em Praia Grande
+      document.getElementById('focusPraiaGrande').addEventListener('click', function() {
+        map.flyTo([-24.0167, -46.4667], 13, {
+          duration: 1.5,
+          easeLinearity: 0.5
+        });
       });
+      
+      // Função para mostrar notificação
+      function showNotification(message, type = 'info', duration = 5000) {
+        // Validação dos parâmetros
+        if (!message) {
+          console.warn('showNotification chamada sem mensagem');
+          return null;
+        }
+        
+        // Tipos de notificação suportados
+        const types = {
+          info: {
+            class: 'bg-blue-100 border-blue-400 text-blue-700',
+            icon: 'ℹ️',
+            label: 'Informação'
+          },
+          success: {
+            class: 'bg-green-100 border-green-400 text-green-700',
+            icon: '✅',
+            label: 'Sucesso'
+          },
+          warning: {
+            class: 'bg-yellow-100 border-yellow-400 text-yellow-700',
+            icon: '⚠️',
+            label: 'Aviso'
+          },
+          error: {
+            class: 'bg-red-100 border-red-400 text-red-700',
+            icon: '❌',
+            label: 'Erro'
+          }
+        };
+        
+        // Obtém as configurações do tipo ou usa 'info' como padrão
+        const config = types[type] || types.info;
+        const notificationId = 'notification-' + Date.now();
+        
+        // Cria o elemento da notificação
+        const notification = document.createElement('div');
+        notification.id = notificationId;
+        notification.className = `fixed top-4 right-4 px-6 py-3 border-l-4 rounded ${config.class} shadow-lg z-[9999] transition-all duration-300 transform translate-x-full`;
+        notification.setAttribute('role', 'alert');
+        notification.setAttribute('aria-live', 'polite');
+        notification.setAttribute('aria-atomic', 'true');
+        
+        // Conteúdo da notificação
+        notification.innerHTML = `
+          <div class="flex items-start">
+            <div class="flex-shrink-0 pt-0.5">
+              <span class="sr-only">${config.label}:</span>
+              <span aria-hidden="true">${config.icon}</span>
+            </div>
+            <div class="ml-3 flex-1">
+              <p class="text-sm font-medium">${message}</p>
+            </div>
+            <div class="ml-4 flex-shrink-0">
+              <button onclick="document.getElementById('${notificationId}').remove()" 
+                      class="inline-flex text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-current rounded-md"
+                      aria-label="Fechar notificação">
+                <span class="sr-only">Fechar notificação</span>
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        `;
+        
+        // Adiciona a notificação ao corpo do documento
+        document.body.appendChild(notification);
+        
+        // Força um reflow para garantir que a animação funcione
+        void notification.offsetWidth;
+        
+        // Anima a entrada
+        notification.style.transform = 'translateX(0)';
+        
+        // Configura o fechamento automático
+        let timeoutId;
+        
+        const setupAutoClose = () => {
+          if (duration > 0) {
+            timeoutId = setTimeout(() => {
+              closeNotification();
+            }, duration);
+          }
+        };
+        
+        // Função para fechar a notificação
+        const closeNotification = () => {
+          if (notification) {
+            notification.style.transform = 'translateX(100%)';
+            
+            // Remove o elemento após a animação
+            setTimeout(() => {
+              if (notification && notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+              }
+            }, 300);
+            
+            // Limpa o timeout
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
+          }
+        };
+        
+        // Configura o fechamento automático
+        setupAutoClose();
+        
+        // Pausa o fechamento automático ao passar o mouse
+        notification.addEventListener('mouseenter', () => {
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+        });
+        
+        // Retoma o fechamento automático ao remover o mouse
+        notification.addEventListener('mouseleave', setupAutoClose);
+        
+        // Retorna um objeto com métodos para controlar a notificação
+        return {
+          element: notification,
+          close: closeNotification,
+          update: (newMessage, newType) => {
+            if (newMessage) {
+              const messageElement = notification.querySelector('p');
+              if (messageElement) {
+                messageElement.textContent = newMessage;
+              }
+            }
+            
+            if (newType && types[newType]) {
+              const config = types[newType];
+              notification.className = `fixed top-4 right-4 px-6 py-3 border-l-4 rounded ${config.class} shadow-lg z-[9999] transition-all duration-300`;
+              
+              const iconElement = notification.querySelector('.flex-shrink-0 span[aria-hidden]');
+              if (iconElement) {
+                iconElement.textContent = config.icon;
+              }
+              
+              const labelElement = notification.querySelector('.sr-only');
+              if (labelElement) {
+                labelElement.textContent = `${config.label}:`;
+              }
+            }
+            
+            // Reinicia o temporizador de fechamento automático
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
+            setupAutoClose();
+            
+            return this;
+          }
+        };
+      }
+      
+      // Função para abrir rota no Google Maps
+      window.abrirRota = function(lat, lng, nome) {
+        console.log(`🌍 Iniciando abertura de rota para: ${nome || 'destino desconhecido'} (${lat}, ${lng})`);
+        
+        // Validação dos parâmetros
+        if (!lat || !lng) {
+          console.error('❌ Coordenadas inválidas fornecidas');
+          showNotification('Não foi possível abrir a rota: coordenadas inválidas.', 'error');
+          return;
+        }
+        
+        // Formata o nome para uso na URL
+        const nomeFormatado = nome ? encodeURIComponent(nome) : 'Destino';
+        
+        // Mostra notificação de carregamento
+        const loadingNotification = showNotification('Preparando sua rota...', 'info');
+        
+        // Função para abrir a URL do Google Maps
+        const abrirGoogleMaps = (url, usarLocalizacao = false) => {
+          console.log(`🔗 URL do Google Maps: ${url}`);
+          
+          // Fecha a notificação de carregamento
+          if (loadingNotification && loadingNotification.style) {
+            loadingNotification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+              if (loadingNotification && loadingNotification.parentNode) {
+                loadingNotification.remove();
+              }
+            }, 300);
+          }
+          
+          // Tenta abrir em um popup primeiro
+          const windowFeatures = 'noopener,noreferrer,width=800,height=600';
+          let newWindow;
+          
+          try {
+            newWindow = window.open('', '_blank', windowFeatures);
+            
+            if (newWindow) {
+              // Adiciona um fallback caso a janela seja bloqueada
+              if (newWindow.closed || typeof newWindow.closed === 'undefined') {
+                throw new Error('Janela popup bloqueada');
+              }
+              
+              // Navega para a URL
+              newWindow.location.href = url;
+              newWindow.focus();
+              
+              // Mostra notificação de sucesso
+              const message = usarLocalizacao 
+                ? `Rota para ${nome || 'o destino'} aberta no Google Maps`
+                : 'Mostrando apenas o destino no Google Maps';
+              
+              showNotification(message, 'success');
+              
+              // Rastreia a abertura bem-sucedida
+              if (window.gtag) {
+                gtag('event', 'navegacao_iniciada', {
+                  'event_category': 'navegacao',
+                  'event_label': nome || 'destino_desconhecido',
+                  'method': usarLocalizacao ? 'com_geolocalizacao' : 'apenas_destino'
+                });
+              }
+            } else {
+              throw new Error('Falha ao abrir nova janela');
+            }
+          } catch (error) {
+            console.warn('Erro ao abrir popup, tentando redirecionar na mesma janela:', error);
+            
+            // Fallback: abre na mesma janela se o popup falhar
+            try {
+              window.location.href = url;
+            } catch (e) {
+              console.error('Falha ao redirecionar:', e);
+              showNotification('Não foi possível abrir o Google Maps. Verifique as configurações do seu navegador.', 'error');
+            }
+          }
+        };
+        
+        // Tenta obter a localização atual do usuário
+        if (navigator.geolocation) {
+          console.log('📍 Solicitando permissão de localização...');
+          
+          const opcoesGeolocalizacao = {
+            enableHighAccuracy: true,
+            timeout: 10000, // 10 segundos de timeout
+            maximumAge: 0 // Sempre obtém uma nova localização
+          };
+          
+          // Adiciona um timeout para o caso de o usuário demorar para responder
+          const timeoutId = setTimeout(() => {
+            console.log('⏱️  Timeout ao aguardar permissão de localização');
+            const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving&dir_action=navigate&destination_place_id=${nomeFormatado}`;
+            abrirGoogleMaps(url, false);
+          }, 15000); // 15 segundos de timeout total
+          
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              clearTimeout(timeoutId); // Limpa o timeout se obteve sucesso
+              
+              const userLat = position.coords.latitude;
+              const userLng = position.coords.longitude;
+              const accuracy = position.coords.accuracy ? ` (precisão: ${Math.round(position.coords.accuracy)}m)` : '';
+              
+              console.log(`📍 Localização obtida: ${userLat}, ${userLng}${accuracy}`);
+              
+              // Constrói a URL do Google Maps com origem e destino
+              const url = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${lat},${lng}&travelmode=driving&dir_action=navigate&destination_place_id=${nomeFormatado}`;
+              
+              // Abre o Google Maps com a rota
+              abrirGoogleMaps(url, true);
+            },
+            (error) => {
+              clearTimeout(timeoutId); // Limpa o timeout em caso de erro
+              
+              console.warn('❌ Erro ao obter localização:', error);
+              
+              // Constrói a URL do Google Maps apenas com o destino
+              const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving&dir_action=navigate&destination_place_id=${nomeFormatado}`;
+              
+              // Mensagens de erro mais amigáveis
+              let mensagemErro = 'Não foi possível obter sua localização. ';
+              
+              switch(error.code) {
+                case error.PERMISSION_DENIED:
+                  mensagemErro += 'Permissão de localização negada.';
+                  break;
+                case error.POSITION_UNAVAILABLE:
+                  mensagemErro += 'As informações de localização não estão disponíveis.';
+                  break;
+                case error.TIMEOUT:
+                  mensagemErro += 'A solicitação de localização expirou.';
+                  break;
+                default:
+                  mensagemErro += 'Erro desconhecido.';
+              }
+              
+              mensagemErro += ' Mostrando apenas o destino.';
+              
+              showNotification(mensagemErro, 'warning');
+              
+              // Abre o Google Maps apenas com o destino
+              abrirGoogleMaps(url, false);
+            },
+            opcoesGeolocalizacao
+          );
+        } else {
+          // Navegador sem suporte a geolocalização
+          console.warn('⚠️ Navegador não suporta geolocalização');
+          
+          const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving&dir_action=navigate&destination_place_id=${nomeFormatado}`;
+          
+          showNotification('Seu navegador não suporta geolocalização. Mostrando apenas o destino.', 'warning');
+          abrirGoogleMaps(url, false);
+        }
+      };
+      
+      // Adiciona controle de camadas
+      const baseLayers = {
+        "Mapa Padrão": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: ' OpenStreetMap contributors'
+        }),
+        "Satélite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        })
+      };
+
+      const overlays = {
+        "Pontos de Demanda": markersLayer
+      };
+
+      L.control.layers(baseLayers, overlays, {collapsed: false}).addTo(map);
+    });
+    
+    // Função para criar o modal dinamicamente
+    function criarModal() {
+      console.log('🛠️  Criando nova instância do modal...');
+      
+      // Remove o modal existente se houver
+      const existingModal = document.getElementById('restauranteModal');
+      if (existingModal && existingModal.parentNode) {
+        console.log('🗑️  Removendo instância anterior do modal');
+        existingModal.parentNode.removeChild(existingModal);
+      }
+      
+      // Cria o elemento do modal
+      const modal = document.createElement('div');
+      modal.id = 'restauranteModal';
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
+      modal.setAttribute('aria-labelledby', 'modalTitulo');
+      modal.setAttribute('aria-describedby', 'modalConteudo');
+      modal.setAttribute('tabindex', '-1');
+      
+      // Aplica estilos inline para garantir consistência
+      Object.assign(modal.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'none',
+        justifyContent: 'center',
+        alignItems: 'flex-start', // Alterado para flex-start para melhorar a visualização em telas pequenas
+        zIndex: '10000',
+        overflowY: 'auto',
+        opacity: '0',
+        visibility: 'hidden',
+        transition: 'opacity 0.3s ease-in-out, visibility 0.3s',
+        padding: '20px 0',
+        backdropFilter: 'blur(2px)' // Efeito de desfoque sutil no fundo
+      });
+      
+      // Conteúdo do modal
+      modal.innerHTML = `
+        <div class="bg-white rounded-lg w-full max-w-md mx-4 my-8 flex flex-col shadow-xl transform transition-all duration-300 ease-out" style="max-height: calc(100vh - 4rem);">
+          <!-- Cabeçalho do modal -->
+          <div class="bg-mototec-teal text-white p-4 rounded-t-lg flex justify-between items-center sticky top-0 z-10">
+            <h2 id="modalTitulo" class="text-lg font-bold m-0">Detalhes dos Restaurantes</h2>
+            <button id="fecharModal" 
+                    class="text-white hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 rounded-full p-1 transition-colors"
+                    aria-label="Fechar modal">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          
+          <!-- Conteúdo dinâmico será inserido aqui -->
+          <div id="modalConteudo" class="flex-1 overflow-y-auto p-4">
+            <div class="text-center py-8 text-gray-500">
+              <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p class="mt-2">Carregando informações...</p>
+            </div>
+          </div>
+          
+          <!-- Rodapé do modal -->
+          <div class="bg-gray-50 px-4 py-3 rounded-b-lg flex justify-end space-x-3 border-t border-gray-200">
+            <button id="btnFecharModal" 
+                    class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mototec-teal">
+              Fechar
+            </button>
+          </div>
+        </div>
+      `;
+      
+      // Adiciona o modal ao final do body
+      document.body.appendChild(modal);
+      
+      // Configura os event listeners
+      const setupEventListeners = function() {
+        // Remove event listeners antigos para evitar duplicação
+        const newModal = modal.cloneNode(true);
+        modal.parentNode.replaceChild(newModal, modal);
+        
+        // Configura o botão de fechar no cabeçalho
+        const fecharModal = newModal.querySelector('#fecharModal');
+        if (fecharModal) {
+          fecharModal.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeModal();
+          });
+        }
+        
+        // Configura o botão de fechar no rodapé
+        const btnFecharModal = newModal.querySelector('#btnFecharModal');
+        if (btnFecharModal) {
+          btnFecharModal.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeModal();
+          });
+        }
+        
+        // Fecha ao clicar fora do conteúdo
+        const clickOutsideHandler = function(e) {
+          if (e.target === newModal) {
+            closeModal();
+          }
+        };
+        
+        newModal.addEventListener('click', clickOutsideHandler);
+        
+        // Fecha com a tecla ESC
+        const keyDownHandler = function(e) {
+          if (e.key === 'Escape' && isModalOpen) {
+            closeModal();
+          }
+        };
+        
+        document.addEventListener('keydown', keyDownHandler);
+        
+        // Limpa os event listeners quando o modal for removido
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (Array.from(mutation.removedNodes).includes(newModal)) {
+              document.removeEventListener('keydown', keyDownHandler);
+              newModal.removeEventListener('click', clickOutsideHandler);
+              observer.disconnect();
+              console.log('🧹 Event listeners do modal removidos');
+            }
+          });
+        });
+        
+        observer.observe(document.body, { childList: true });
+        
+        return newModal;
+      };
+      
+      // Configura os event listeners e retorna a nova instância do modal
+      const newModalInstance = setupEventListeners();
+      
+      console.log('✅ Modal criado com sucesso');
+      return newModalInstance;
+      
+      // Limpa os event listeners quando o modal for removido
+      const observer = new MutationObserver(function(mutations) {
+        if (!document.body.contains(modal)) {
+          document.removeEventListener('keydown', keyDownHandler);
+          modal.removeEventListener('click', clickOutsideHandler);
+          observer.disconnect();
+        }
+      });
+      
+      observer.observe(document.body, { childList: true });
+      
+      console.log('Modal criado com sucesso');
+      return modal;
+    }
+    
+    // Estado global para controlar o modal
+    let isModalOpen = false;
+    let currentModalData = null;
+    let modalInstance = null;
+    
+    // Referência ao último elemento com foco antes de abrir o modal
+    let ultimoElementoFocado = null;
+    
+    // Referência ao overlay do modal
+    let modalOverlay = null;
+    
+    // Elementos do modal de navegação
+    let modalNavegacao = null;
+    let tituloNavegacao = null;
+    let descricaoNavegacao = null;
+    
+    /**
+     * Inicializa o modal de navegação e configura os event listeners necessários
+     * @returns {void}
+     */
+    function inicializarModalNavegacao() {
+      console.log('🔧 Inicializando modal de navegação...');
+      
+      try {
+        // Cria a instância do modal se ainda não existir
+        if (!modalInstance) {
+          modalInstance = criarModal();
+        }
+        
+        // Obtém referências para os elementos do DOM
+        modalNavegacao = document.getElementById('modalNavegacao');
+        tituloNavegacao = modalNavegacao ? modalNavegacao.querySelector('#tituloNavegacao') : null;
+        descricaoNavegacao = modalNavegacao ? modalNavegacao.querySelector('#descricaoNavegacao') : null;
+        
+        // Configura o botão de fechar do modal
+        const btnFechar = modalNavegacao ? modalNavegacao.querySelector('[data-fechar-modal]') : null;
+        if (btnFechar) {
+          btnFechar.addEventListener('click', fecharModalNavegacao);
+        }
+        
+        // Configura o botão de cancelar
+        const btnCancelar = modalNavegacao ? modalNavegacao.querySelector('#btnCancelarNavegacao') : null;
+        if (btnCancelar) {
+          btnCancelar.addEventListener('click', fecharModalNavegacao);
+        }
+        
+        // Configura o gerenciamento de foco para acessibilidade
+        if (modalNavegacao) {
+          // Mantém o foco dentro do modal quando aberto
+          modalNavegacao.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+              const focusableElements = modalNavegacao.querySelectorAll(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+              );
+              
+              const firstElement = focusableElements[0];
+              const lastElement = focusableElements[focusableElements.length - 1];
+              
+              if (e.shiftKey) {
+                if (document.activeElement === firstElement) {
+                  e.preventDefault();
+                  lastElement.focus();
+                }
+              } else {
+                if (document.activeElement === lastElement) {
+                  e.preventDefault();
+                  firstElement.focus();
+                }
+              }
+            }
+          });
+        }
+        
+        console.log('✅ Modal de navegação inicializado com sucesso');
+        
+      } catch (error) {
+        console.error('❌ Erro ao inicializar o modal de navegação:', error);
+        showNotification('Erro ao inicializar o modal de navegação', 'error');
+      }
+    }
+    
+    // Inicializa o modal quando o DOM estiver pronto
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', inicializarModalNavegacao);
+    } else {
+      // DOM já está pronto, inicializa imediatamente
+      setTimeout(inicializarModalNavegacao, 0);
+    }
+
+    // Função para abrir o modal com os detalhes
+    window.abrirModalDetalhes = function(grupo) {
+      console.group('Abrindo Modal Detalhes');
+      console.log('Dados do grupo recebidos:', grupo);
+      
+      // Verifica se o grupo é válido
+      if (!grupo) {
+        console.error('Erro: Nenhum grupo fornecido para abrir o modal de detalhes');
+        console.groupEnd();
+        return;
+      }
+      
+      // Se já estiver aberto com os mesmos dados, apenas traz para frente
+      if (isModalOpen && currentModalData && currentModalData.id === grupo.id) {
+        console.log('Modal já está aberto com estes dados, trazendo para frente');
+        showModal(); // Garante que o modal está visível
+        console.groupEnd();
+        return;
+      }
+      
+      // Atualiza os dados atuais
+      currentModalData = grupo;
+      
+      // Fecha o modal de confirmação se estiver aberto
+      fecharModalNavegacao();
+      
+      // Garante que o modal existe
+      if (!modalInstance || !document.body.contains(modalInstance)) {
+        console.log('Criando nova instância do modal');
+        modalInstance = criarModal();
+        // Adiciona o modal ao body se ainda não estiver lá
+        if (!document.body.contains(modalInstance)) {
+          document.body.appendChild(modalInstance);
+        }
+      }
+      
+      // Prepara o conteúdo do modal
+      let conteudo = `
+        <div class="p-4">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-bold text-gray-800">Detalhes do Ponto</h3>
+            <button id="fecharDetalhes" class="text-gray-400 hover:text-gray-600">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          
+          <div class="space-y-4">
+            <div class="bg-white p-4 rounded-lg shadow">
+              <h4 class="font-semibold text-gray-700 mb-2">Resumo</h4>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-1">
+                  <p class="text-sm text-gray-500">Total de Pedidos</p>
+                  <p class="text-lg font-semibold">${grupo.total_pedidos || 0}</p>
+                </div>
+                <div class="space-y-1">
+                  <p class="text-sm text-gray-500">Restaurantes</p>
+                  <p class="text-lg font-semibold">${grupo.quantidade_restaurantes || 0}</p>
+                </div>
+                <div class="space-y-1">
+                  <p class="text-sm text-gray-500">Intensidade</p>
+                  <div class="flex items-center">
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 mr-2">
+                      <div class="bg-mototec-azul h-2.5 rounded-full" style="width: ${(grupo.intensidade * 100).toFixed(0)}%"></div>
+                    </div>
+                    <span class="text-sm">${(grupo.intensidade * 100).toFixed(1)}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white p-4 rounded-lg shadow">
+              <h4 class="font-semibold text-gray-700 mb-3">Restaurantes no Ponto</h4>
+              <div class="max-h-64 overflow-y-auto space-y-3">
+      `;
+      
+      // Adiciona os restaurantes
+      if (grupo.restaurantes && grupo.restaurantes.length > 0) {
+        // Ordena por quantidade de pedidos (mais pedidos primeiro)
+        const restaurantesOrdenados = [...grupo.restaurantes].sort((a, b) => (b.pedidos || 0) - (a.pedidos || 0));
+        
+        // Limita a 10 restaurantes para não sobrecarregar o modal
+        const restaurantesExibir = restaurantesOrdenados.slice(0, 10);
+        
+        restaurantesExibir.forEach(rest => {
+          conteudo += `
+            <div class="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
+              <div>
+                <p class="font-medium text-gray-900">${rest.nome || 'Restaurante'}</p>
+                <p class="text-sm text-gray-500">${rest.pedidos || 0} pedido${rest.pedidos !== 1 ? 's' : ''}</p>
+              </div>
+              <button 
+                onclick="abrirRota(${grupo.lat}, ${grupo.lng}, '${(rest.nome || 'Restaurante').replace(/'/g, "\\'")}')"
+                class="text-mototec-azul hover:text-mototec-azul-dark text-sm font-medium px-3 py-1 border border-mototec-azul rounded hover:bg-mototec-azul hover:bg-opacity-10 transition-colors"
+              >
+                Ver rota
+              </button>
+            </div>
+          `;
+        });
+        
+        // Adiciona contador se houver mais restaurantes
+        if (grupo.restaurantes.length > 10) {
+          conteudo += `
+            <div class="text-center text-sm text-gray-500 mt-2">
+              +${grupo.restaurantes.length - 10} outro${grupo.restaurantes.length - 10 > 1 ? 's' : ''} restaurante${grupo.restaurantes.length - 10 > 1 ? 's' : ''}
+            </div>
+          `;
+        }
+      } else {
+        conteudo += `
+          <div class="text-center py-4 text-gray-500">
+            Nenhum restaurante disponível neste ponto
+          </div>
+        `;
+      }
+      
+      // Fecha as divs e adiciona o botão de rota
+      conteudo += `
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-6 flex justify-end">
+            <button 
+              onclick="abrirRota(${grupo.lat}, ${grupo.lng}, '${(grupo.restaurantes && grupo.restaurantes[0] && grupo.restaurantes[0].nome ? grupo.restaurantes[0].nome : 'Local').replace(/'/g, "\\'")}')"
+              class="flex items-center px-4 py-2 bg-mototec-azul text-white rounded-md hover:bg-mototec-azul-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mototec-azul"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              </svg>
+              Ver rota para o local
+            </button>
+          </div>
+        </div>
+      `;
+      
+      try {
+        // Atualiza o conteúdo do modal
+        const modalContent = modalInstance.querySelector('#modalConteudo');
+        if (modalContent) {
+          // Limpa o conteúdo existente primeiro
+          modalContent.innerHTML = '';
+          
+          // Cria um elemento temporário para converter a string HTML em nós DOM
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = conteudo;
+          
+          // Adiciona o conteúdo ao modal
+          while (tempDiv.firstChild) {
+            modalContent.appendChild(tempDiv.firstChild);
+          }
+          
+          // Adiciona evento de clique no botão de fechar
+          const fecharBtn = modalContent.querySelector('#fecharDetalhes');
+          if (fecharBtn) {
+            // Remove event listeners antigos
+            const newFecharBtn = fecharBtn.cloneNode(true);
+            fecharBtn.parentNode.replaceChild(newFecharBtn, fecharBtn);
+            
+            newFecharBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              closeModal();
+            });
+          }
+          
+          // Adiciona eventos de clique nos botões de rota
+          const botoesRota = modalContent.querySelectorAll('button[onclick^="abrirRota"]');
+          botoesRota.forEach(botao => {
+            const onclick = botao.getAttribute('onclick');
+            botao.removeAttribute('onclick');
+            botao.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              // Executa a função abrirRota com os parâmetros
+              const fn = new Function(onclick.replace('abrirRota', 'return abrirRota'));
+              fn();
+            });
+          });
+          
+          // Exibe o modal
+          showModal();
+          console.log('✅ Modal de detalhes exibido com sucesso');
+        } else {
+          console.error('❌ Erro: Elemento de conteúdo do modal não encontrado');
+          throw new Error('Elemento de conteúdo do modal não encontrado');
+        }
+      } catch (error) {
+        console.error('Erro ao exibir o modal:', error);
+        // Fallback: usa o popup do Leaflet
+        L.popup()
+          .setLatLng([grupo.lat, grupo.lng])
+          .setContent(`
+            <div style="max-width: 250px;">
+              <h3 style="margin: 0 0 10px 0; font-weight: bold;">Detalhes do Ponto</h3>
+              <p><strong>Pedidos:</strong> ${grupo.total_pedidos || 0}</p>
+              <p><strong>Restaurantes:</strong> ${grupo.quantidade_restaurantes || 0}</p>
+              <p><strong>Intensidade:</strong> ${(grupo.intensidade * 100).toFixed(1)}%</p>
+            </div>
+          `)
+          .openOn(map);
+      }
+      
+      console.groupEnd();
+    }
+    
+    // Função auxiliar para mostrar o modal
+    function showModal() {
+      console.log('🔄 Iniciando showModal');
+      
+      if (!modalInstance) {
+        console.error('❌ Erro: Instância do modal não está disponível');
+        return;
+      }
+      
+      // Fecha o modal de confirmação de navegação se estiver aberto
+      const modalNavegacao = document.getElementById('modalNavegacao');
+      if (modalNavegacao && !modalNavegacao.classList.contains('hidden')) {
+        console.log('🔒 Fechando modal de navegação antes de abrir o modal de detalhes');
+        fecharModalNavegacao();
+      }
+      
+      try {
+        // Verifica se o modal está no DOM
+        if (!document.body.contains(modalInstance)) {
+          console.log('➕ Adicionando modal ao DOM...');
+          document.body.appendChild(modalInstance);
+          
+          // Remove event listeners antigos para evitar duplicação
+          const newModalInstance = modalInstance.cloneNode(true);
+          modalInstance.parentNode.replaceChild(newModalInstance, modalInstance);
+          modalInstance = newModalInstance;
+          
+          // Adiciona evento de clique fora do conteúdo para fechar o modal
+          modalInstance.addEventListener('click', function(e) {
+            if (e.target === modalInstance) {
+              console.log('👆 Clique fora do conteúdo do modal detectado, fechando...');
+              closeModal();
+            }
+          });
+          
+          // Adiciona evento de tecla ESC para fechar o modal
+          const handleKeyDown = function(e) {
+            if (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27) {
+              console.log('⎋ Tecla ESC pressionada, fechando modal...');
+              closeModal();
+              // Remove o event listener após fechar para evitar vazamento de memória
+              document.removeEventListener('keydown', handleKeyDown);
+            }
+          };
+          
+          document.addEventListener('keydown', handleKeyDown);
+          console.log('🎯 Event listeners do modal configurados');
+        }
+        
+        // Mostra o modal com animação
+        modalInstance.style.display = 'flex';
+        modalInstance.style.visibility = 'visible';
+        modalInstance.style.opacity = '1';
+        modalInstance.style.zIndex = '10000';
+        modalInstance.style.position = 'fixed';
+        modalInstance.style.top = '0';
+        modalInstance.style.left = '0';
+        modalInstance.style.width = '100%';
+        modalInstance.style.height = '100%';
+        modalInstance.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        modalInstance.style.justifyContent = 'center';
+        modalInstance.style.alignItems = 'center';
+        modalInstance.style.overflow = 'auto';
+        modalInstance.style.padding = '20px 0';
+        
+        // Rola para o topo da página
+        window.scrollTo(0, 0);
+        
+        // Atualiza o estado
+        isModalOpen = true;
+        console.log('Modal visível');
+        
+        // Foca no botão de fechar para melhor acessibilidade
+        setTimeout(() => {
+          const fecharBtn = modalInstance.querySelector('#fecharModal');
+          if (fecharBtn) {
+            fecharBtn.focus();
+          } else {
+            console.warn('Botão fecharModal não encontrado no modal');
+          }
+        }, 100);
+        
+        // Impede a rolagem da página
+        if (document && document.documentElement && document.body) {
+          document.body.style.overflow = 'hidden';
+          document.documentElement.style.overflow = 'hidden';
+          document.body.style.position = 'relative';
+          document.body.style.height = '100%';
+          document.body.style.width = '100%';
+          
+          console.log('Estilos de overflow aplicados');
+        } else {
+          console.warn('document.body ou document.documentElement não estão disponíveis');
+        }
+      } catch (error) {
+        console.error('Erro ao exibir o modal:', error);
+      }
+    }
+    
+    // Função auxiliar para fechar o modal
+    function closeModal() {
+      console.log('🔄 Iniciando closeModal');
+      
+      if (!modalInstance) {
+        console.warn('⚠️ Aviso: Instância do modal não está disponível ao tentar fechar');
+        return;
+      }
+      
+      console.log('⏳ Fechando modal...');
+      
+      try {
+        // Verifica se o modal está visível antes de tentar fechar
+        if (modalInstance && modalInstance.style && window.getComputedStyle(modalInstance).display !== 'none') {
+          console.log('🎭 Iniciando animação de fechamento do modal');
+          
+          // Primeiro faz a transição de opacidade
+          modalInstance.style.opacity = '0';
+          modalInstance.style.transition = 'opacity 0.3s ease-in-out';
+          
+          // Depois que a animação terminar, esconde o modal
+          const onTransitionEnd = function() {
+            if (modalInstance) {
+              modalInstance.style.display = 'none';
+              modalInstance.style.visibility = 'hidden';
+              // Remove o event listener após fechar para evitar vazamento de memória
+              modalInstance.removeEventListener('transitionend', onTransitionEnd);
+              console.log('✅ Animação de fechamento concluída');
+            }
+          };
+          
+          // Adiciona o event listener para o fim da transição
+          modalInstance.addEventListener('transitionend', onTransitionEnd);
+          
+          // Força o fechamento caso a transição não seja disparada
+          setTimeout(() => {
+            if (modalInstance && window.getComputedStyle(modalInstance).opacity === '0') {
+              modalInstance.style.display = 'none';
+              modalInstance.style.visibility = 'hidden';
+              modalInstance.removeEventListener('transitionend', onTransitionEnd);
+              console.log('⏱️  Fechamento forçado após timeout');
+            }
+          }, 500); // Tempo maior que a duração da transição
+        } else {
+          console.log('ℹ️  Modal já está fechado ou não está visível');
+        }
+        
+        // Atualiza o estado
+        const wasOpen = isModalOpen;
+        isModalOpen = false;
+        
+        // Limpa os dados atuais apenas se o modal estava aberto
+        if (wasOpen) {
+          currentModalData = null;
+          console.log('♻️  Estado do modal atualizado: fechado');
+        }
+        
+        // Restaura a rolagem da página
+        if (document && document.documentElement && document.body) {
+          console.log('🔄 Restaurando rolagem da página...');
+          
+          // Remove os estilos de bloqueio de rolagem
+          document.body.style.overflow = '';
+          document.documentElement.style.overflow = '';
+          document.body.style.position = '';
+          document.body.style.height = '';
+          document.body.style.width = '';
+          document.body.style.paddingRight = ''; // Remove qualquer padding adicionado
+          
+          // Remove a classe que bloqueia a rolagem do body
+          document.body.classList.remove('overflow-hidden', 'h-full');
+          
+          // Força um redesenho para garantir que a rolagem seja restaurada
+          document.body.style.overflow = 'auto';
+          
+          // Dispara um evento personalizado para notificar outros componentes
+          const event = new CustomEvent('modalFechado', { detail: { wasOpen } });
+          document.dispatchEvent(event);
+          
+          console.log('✅ Rolagem da página restaurada');
+        } else {
+          console.warn('⚠️ document.body ou document.documentElement não estão disponíveis ao fechar o modal');
+        }
+        
+        // Volta para o topo do conteúdo do modal
+        const conteudo = modalInstance ? modalInstance.querySelector('#modalConteudo') : null;
+        if (conteudo) {
+          conteudo.scrollTop = 0;
+          console.log('⬆️  Conteúdo do modal retornado ao topo');
+        }
+        
+        // Remove o foco do botão de fechar para melhor acessibilidade
+        const fecharBtn = modalInstance ? modalInstance.querySelector('#fecharModal, #fecharDetalhes') : null;
+        if (fecharBtn) {
+          fecharBtn.blur();
+          console.log('🎯 Foco removido do botão de fechar');
+        }
+        
+        // Remove o foco de qualquer elemento dentro do modal para evitar que fique focado fora da tela
+        if (modalInstance) {
+          const focusedElement = modalInstance.querySelector(':focus');
+          if (focusedElement) {
+            focusedElement.blur();
+          }
+        }
+        
+        console.log('✅ Modal fechado com sucesso');
+      } catch (error) {
+        console.error('❌ Erro ao fechar o modal:', error);
+        
+        // Tenta uma abordagem mais agressiva em caso de erro
+        try {
+          console.log('🛠️  Tentando abordagem alternativa para fechar o modal...');
+          
+          if (modalInstance) {
+            // Tenta remover todos os estilos que podem estar causando problemas
+            modalInstance.style.display = 'none';
+            modalInstance.style.visibility = 'hidden';
+            modalInstance.style.opacity = '0';
+            
+            // Remove o modal do DOM se possível
+            if (modalInstance.parentNode) {
+              console.log('🗑️  Removendo o modal do DOM forçadamente');
+              modalInstance.parentNode.removeChild(modalInstance);
+            }
+          }
+          
+          // Força a recriação do modal na próxima abertura
+          modalInstance = null;
+          isModalOpen = false;
+          currentModalData = null;
+          
+          // Restaura a rolagem da página mesmo em caso de erro
+          if (document && document.documentElement && document.body) {
+            document.body.style.overflow = 'auto';
+            document.documentElement.style.overflow = 'auto';
+            document.body.classList.remove('overflow-hidden', 'h-full');
+            console.log('🔄 Rolagem da página restaurada após erro');
+          }
+        } catch (e) {
+          console.error('❌ Erro crítico ao tentar limpar o modal:', e);
+          
+          // Última tentativa: recarrega a página se possível (apenas em desenvolvimento)
+          if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            console.warn('🔄 Tentando recarregar a página para restaurar o estado...');
+            window.location.reload();
+          }
+        }
+      }
+    }
+    
+    // Configura os event listeners para o modal
+    if (modalInstance) {
+      // Fechar modal quando clicar no botão de fechar
+      const fecharModal = modalInstance.querySelector('#fecharModal');
+      if (fecharModal) {
+        // Remove event listeners antigos para evitar duplicação
+        const novoFecharModal = fecharModal.cloneNode(true);
+        fecharModal.parentNode.replaceChild(novoFecharModal, fecharModal);
+        
+        // Adiciona o novo event listener
+        novoFecharModal.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          closeModal();
+        });
+        
+        // Adiciona acessibilidade
+        novoFecharModal.setAttribute('aria-label', 'Fechar modal');
+        novoFecharModal.setAttribute('title', 'Fechar (ESC)');
+      }
+      
+      // Fechar modal quando clicar fora do conteúdo
+      modalInstance.addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeModal();
+        }
+      });
+    }
+    
+    // Fechar modal com a tecla ESC
+    function handleKeyDown(e) {
+      if ((e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27) && isModalOpen) {
+        e.preventDefault();
+        closeModal();
+      }
+    }
+    
+    // Remove event listeners antigos
+    document.removeEventListener('keydown', handleKeyDown);
+    // Adiciona o novo event listener
+    document.addEventListener('keydown', handleKeyDown);
+    
+    /**
+     * Mostra o modal de confirmação de navegação com as informações do grupo
+     * @param {Object} grupo - Objeto contendo as informações do grupo de restaurantes
+     * @returns {void}
+     */
+    function mostrarConfirmacaoNavegacao(grupo) {
+      console.log('\n=== INÍCIO mostrarConfirmacaoNavegacao ===');
+      
+      // Validação do parâmetro
+      if (!grupo || typeof grupo !== 'object') {
+        console.error('❌ Erro: Parâmetro grupo inválido ou não fornecido');
+        showNotification('Erro: Dados de navegação inválidos', 'error');
+        return;
+      }
+      
+      // Verifica se as coordenadas são válidas
+      if (typeof grupo.lat !== 'number' || typeof grupo.lng !== 'number' || 
+          isNaN(grupo.lat) || isNaN(grupo.lng)) {
+        console.error('❌ Erro: Coordenadas inválidas no grupo:', grupo);
+        showNotification('Erro: Localização de destino inválida', 'error');
+        return;
+      }
+      
+      console.log('Grupo recebido:', JSON.stringify({
+        nome: grupo.nome,
+        lat: grupo.lat,
+        lng: grupo.lng,
+        endereco: grupo.endereco,
+        distancia: grupo.distancia
+      }, null, 2));
+      
+      // Fecha qualquer modal aberto antes de abrir um novo
+      if (isModalOpen) {
+        console.log('ℹ️  Fechando modal aberto anteriormente...');
+        fecharModalNavegacao();
+      }
+      
+      // Fecha qualquer popup aberto no mapa
+      if (window.map) {
+        window.map.closePopup();
+      }
+      
+      // Usa a referência global do modal ou tenta obter do DOM
+      const modal = modalNavegacao || document.getElementById('modalNavegacao');
+      
+      if (!modal) {
+        console.error('❌ Erro: Elemento do modal não encontrado no DOM');
+        showNotification('Erro ao abrir o modal de navegação', 'error');
+        
+        // Tenta inicializar o modal novamente
+        try {
+          inicializarModalNavegacao();
+        } catch (e) {
+          console.error('❌ Falha ao tentar reinicializar o modal:', e);
+        }
+        
+        return;
+      }
+      
+      try {
+        console.log('🔄 Atualizando conteúdo do modal...');
+        
+        // Armazena a referência do elemento com foco para restaurar depois
+        ultimoElementoFocado = document.activeElement;
+        
+        // Atualiza o título usando a referência global ou busca no DOM
+        const titulo = tituloNavegacao || modal.querySelector('#tituloNavegacao');
+        if (titulo) {
+          titulo.textContent = `Navegar até ${grupo.nome || 'o destino'}?`;
+          titulo.setAttribute('aria-live', 'polite');
+          titulo.id = 'tituloNavegacao'; // Garante que o ID está definido
+        }
+        
+        // Atualiza a descrição usando a referência global ou busca no DOM
+        const descricao = descricaoNavegacao || modal.querySelector('#descricaoNavegacao');
+        if (descricao) {
+          const endereco = grupo.endereco ? 
+            `<p class="mb-2 text-gray-700">${grupo.endereco}</p>` : '';
+            
+          const distancia = grupo.distancia ? 
+            `<p class="text-sm text-gray-500 mb-4">📍 Aproximadamente ${grupo.distancia} de distância</p>` : '';
+          
+          const infoAdicionais = [];
+          
+          // Adiciona informações adicionais se disponíveis
+          if (grupo.quantidade_restaurantes > 0) {
+            infoAdicionais.push(`<p class="text-sm text-gray-600">🏪 ${grupo.quantidade_restaurantes} restaurantes</p>`);
+          }
+          
+          if (grupo.total_pedidos > 0) {
+            infoAdicionais.push(`<p class="text-sm text-gray-600">📦 ${grupo.total_pedidos} pedidos recentes</p>`);
+          }
+          
+          // Adiciona informações adicionais do grupo, se disponíveis
+          if (grupo.info_adicional) {
+            infoAdicionais.push(`<p class="text-sm text-gray-600">ℹ️ ${grupo.info_adicional}</p>`);
+          }
+          
+          // Atualiza o conteúdo da descrição
+          descricao.innerHTML = `
+            <div class="text-left space-y-2">
+              ${endereco}
+              ${distancia}
+              ${infoAdicionais.length > 0 ? 
+                `<div class="mt-3 space-y-1 bg-gray-50 p-3 rounded-md">
+                  ${infoAdicionais.join('')}
+                </div>` : ''}
+            </div>
+          `;
+          
+          // Atualiza a referência global da descrição
+          if (!descricaoNavegacao) {
+            descricaoNavegacao = descricao;
+          }
+        }
+        
+        /**
+         * Configura um botão do modal com tratamento de eventos e rastreamento
+         * @param {string} seletor - Seletor CSS para encontrar o botão
+         * @param {Function} callback - Função a ser executada ao clicar
+         * @param {Object} rastreamento - Configuração de rastreamento (opcional)
+         * @returns {HTMLElement|null} O botão configurado ou null se não encontrado
+         */
+        const configurarBotao = (seletor, callback, rastreamento) => {
+          try {
+            // Tenta encontrar o botão no modal
+            const botao = modal.querySelector(seletor);
+            if (!botao) {
+              console.warn(`⚠️ Botão não encontrado: ${seletor}`);
+              return null;
+            }
+            
+            console.log(`🔧 Configurando botão: ${seletor}`);
+            
+            // Remove event listeners antigos clonando o elemento
+            const novoBotao = botao.cloneNode(true);
+            botao.parentNode.replaceChild(novoBotao, botao);
+            
+            // Remove quaisquer event listeners antigos
+            const novoBotaoClone = novoBotao.cloneNode(true);
+            novoBotao.parentNode.replaceChild(novoBotaoClone, novoBotao);
+            
+            // Adiciona o novo event listener
+            novoBotaoClone.addEventListener('click', function handler(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              console.log(`🖱️ Botão clicado: ${seletor}`);
+              
+              // Rastreia a ação se fornecido
+              if (rastreamento && window.gtag) {
+                try {
+                  gtag('event', rastreamento.event, {
+                    event_category: rastreamento.category || 'navegacao',
+                    event_label: grupo.nome || 'destino_desconhecido',
+                    ...(rastreamento.params || {})
+                  });
+                  console.log('📊 Evento rastreado:', rastreamento.event);
+                } catch (erro) {
+                  console.error('❌ Erro ao rastrear evento:', erro);
+                }
+              }
+              
+              // Executa o callback
+              if (typeof callback === 'function') {
+                try {
+                  callback();
+                } catch (erro) {
+                  console.error('❌ Erro ao executar callback do botão:', erro);
+                  showNotification('Ocorreu um erro ao processar esta ação', 'error');
+                }
+              }
+              
+              // Remove o event listener após o clique para evitar múltiplas execuções
+              novoBotaoClone.removeEventListener('click', handler);
+            });
+            
+            // Adiciona atributos de acessibilidade
+            novoBotaoClone.setAttribute('aria-label', `Confirmar navegação para ${grupo.nome || 'o destino'}`);
+            
+            return novoBotaoClone;
+            
+          } catch (erro) {
+            console.error(`❌ Erro ao configurar o botão ${seletor}:`, erro);
+            return null;
+          }
+        };
+        
+        // Configura o botão de confirmar navegação
+        const btnConfirmar = configurarBotao(
+          '#btnConfirmarNavegacao',
+          () => {
+            console.log('🚀 Iniciando navegação para:', grupo.nome);
+            fecharModalNavegacao();
+            abrirRota(grupo.lat, grupo.lng, grupo.nome);
+          },
+          {
+            event: 'navegacao_iniciada',
+            category: 'navegacao',
+            params: { 
+              value: 1,
+              method: 'app_padrao'
+            }
+          }
+        );
+        
+        // Configura o botão de cancelar
+        const btnCancelar = configurarBotao(
+          '#btnCancelarNavegacao',
+          () => {
+            console.log('❌ Navegação cancelada pelo usuário');
+            fecharModalNavegacao();
+          },
+          {
+            event: 'navegacao_cancelada',
+            category: 'navegacao',
+            params: { value: 0 }
+          }
+        );
+        
+        // Configura o botão de abrir em outro app (se existir)
+        const btnAbrirRota = configurarBotao(
+          '#btnAbrirRota',
+          () => {
+            console.log('🌐 Abrindo rota em app externo para:', grupo.nome);
+            fecharModalNavegacao();
+            abrirRota(grupo.lat, grupo.lng, grupo.nome, true);
+          },
+          {
+            event: 'rota_externa_aberta',
+            category: 'navegacao',
+            params: { 
+              value: 1,
+              method: 'app_externo'
+            }
+          }
+        );
+        
+        // Verifica se os botões foram configurados corretamente
+        if (!btnConfirmar) {
+          console.warn('⚠️ Botão de confirmação não configurado corretamente');
+        }
+        
+        if (!btnCancelar) {
+          console.warn('⚠️ Botão de cancelar não configurado corretamente');
+        }
+        
+        if (!btnAbrirRota) {
+          console.log('ℹ️ Botão de abrir rota externa não encontrado, continuando sem ele');
+        }
+        
+        // Mostra o modal
+        console.log('🔄 Mostrando o modal...');
+        
+        // Remove a classe hidden e define atributos de acessibilidade
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-labelledby', 'tituloNavegacao');
+        
+        // Armazena a referência do modal no estado global
+        isModalOpen = true;
+        currentModalData = grupo;
+        
+        // Adiciona o overlay
+        let overlay = document.getElementById('modalOverlay');
+        if (!overlay) {
+          overlay = document.createElement('div');
+          overlay.id = 'modalOverlay';
+          overlay.className = 'fixed inset-0 bg-black bg-opacity-50 z-[999] transition-opacity duration-300 opacity-0';
+          overlay.setAttribute('aria-hidden', 'true');
+          document.body.appendChild(overlay);
+          
+          // Adiciona o evento de clique para fechar ao clicar fora
+          overlay.addEventListener('click', fecharModalNavegacao);
+          
+          // Força um redesenho para garantir que a animação funcione
+          void overlay.offsetWidth;
+          overlay.style.opacity = '1';
+        }
+        
+        // Bloqueia o scroll da página
+        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+        document.body.style.overflow = 'hidden';
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+        document.body.classList.add('overflow-hidden', 'modal-open');
+        
+        // Adiciona atributo para indicar que o modal está aberto (para acessibilidade)
+        document.body.setAttribute('aria-hidden', 'true');
+        
+        // Força um redesenho para garantir que a animação funcione
+        void modal.offsetWidth;
+        
+        // Adiciona as classes para animação de entrada
+        modal.classList.add('opacity-100', 'scale-100');
+        
+        // Foca no botão de confirmar para melhor acessibilidade
+        setTimeout(() => {
+          try {
+            if (btnConfirmar) {
+              btnConfirmar.focus();
+              console.log('🎯 Foco definido no botão de confirmação');
+            } else {
+              // Se não encontrar o botão de confirmar, foca no primeiro elemento focado
+              const primeiroFocavel = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+              if (primeiroFocavel) {
+                primeiroFocavel.focus();
+                console.log('🎯 Foco definido no primeiro elemento focado');
+              } else {
+                modal.focus();
+                console.log('🎯 Foco definido no modal');
+              }
+            }
+          } catch (error) {
+            console.error('❌ Erro ao definir foco no modal:', error);
+          }
+        }, 100);
+        
+        // Rastreia a abertura do modal
+        if (window.gtag) {
+          gtag('event', 'modal_aberto', {
+            event_category: 'navegacao',
+            event_label: 'confirmacao_navegacao',
+            value: 1
+          });
+        }
+        
+        console.log('✅ Modal de navegação aberto com sucesso');
+        
+      } catch (error) {
+        console.error('❌ Erro ao exibir o modal de navegação:', error);
+        
+        // Tenta limpar o estado em caso de erro
+        try {
+          if (modal) {
+            modal.classList.add('hidden');
+            modal.setAttribute('aria-hidden', 'true');
+          }
+          
+          const overlay = document.getElementById('modalOverlay');
+          if (overlay && overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+          }
+          
+          document.body.style.overflow = '';
+          document.body.style.paddingRight = '';
+          document.body.classList.remove('overflow-hidden', 'modal-open');
+          
+        } catch (e) {
+          console.error('❌ Erro ao limpar o estado após erro:', e);
+        }
+        
+        // Mostra uma mensagem de erro amigável
+        showNotification('Não foi possível abrir o modal de navegação. Tente novamente.', 'error');
+      }
+    }
+    
+    /**
+     * Fecha o modal de navegação de forma segura, com animação e tratamento de erros
+     * @returns {void}
+     */
+    function fecharModalNavegacao() {
+      console.log('=== INÍCIO fecharModalNavegacao ===');
+      
+      // Referência ao modal usando a variável global ou busca no DOM
+      const modal = modalNavegacao || document.getElementById('modalNavegacao');
+      
+      // Se o modal não existir ou já estiver fechado, não faz nada
+      if (!modal) {
+        console.warn('⚠️  Modal de navegação não encontrado no DOM');
+        return;
+      }
+      
+      // Verifica se o modal já está fechado
+      if (modal.classList.contains('hidden') || modal.getAttribute('aria-hidden') === 'true') {
+        console.log('ℹ️  Modal de navegação já está fechado');
+        return;
+      }
+      
+      console.log('🔒 Iniciando fechamento do modal de navegação...');
+      
+      // Verifica se há uma animação em andamento
+      if (modal.classList.contains('closing')) {
+        console.log('ℹ️  Fechamento do modal já em andamento');
+        return;
+      }
+      
+      // Marca que está fechando para evitar múltiplas chamadas
+      modal.classList.add('closing');
+      
+      // Função para limpar o estado e os event listeners
+      const limparEstado = () => {
+        console.log('🧹 Limpando estado e event listeners...');
+        
+        try {
+          // Remove o foco do modal para acessibilidade
+          if (document.activeElement && modal.contains(document.activeElement)) {
+            document.activeElement.blur();
+          }
+          
+          // Esconde o modal com animação
+          modal.style.transition = 'opacity 200ms, transform 200ms';
+          modal.style.opacity = '0';
+          modal.style.transform = 'translateY(20px) scale(0.95)';
+          
+          // Aguarda a animação terminar antes de esconder completamente
+          setTimeout(() => {
+            try {
+              // Esconde o modal
+              modal.classList.add('hidden');
+              modal.setAttribute('aria-hidden', 'true');
+              modal.classList.remove('closing');
+              
+              // Remove as propriedades de estilo adicionadas
+              modal.style.transition = '';
+              modal.style.opacity = '';
+              modal.style.transform = '';
+              
+              // Atualiza o estado global
+              isModalOpen = false;
+              currentModalData = null;
+              
+              console.log('✅ Modal de navegação fechado com sucesso');
+              
+              // Dispara evento personalizado para notificar outros componentes
+              document.dispatchEvent(new CustomEvent('modalNavegacaoFechado', {
+                detail: { grupo: currentModalData }
+              }));
+              
+            } catch (e) {
+              console.error('❌ Erro ao finalizar animação de fechamento:', e);
+              // Força o fechamento em caso de erro
+              modal.classList.add('hidden');
+              modal.setAttribute('aria-hidden', 'true');
+              modal.classList.remove('closing');
+            }
+          }, 200);
+          
+          // Remove o atributo aria-hidden do body
+          document.body.removeAttribute('aria-hidden');
+          
+          // Remove o event listener do teclado
+          document.removeEventListener('keydown', handleKeyDown);
+          
+          // Remove o overlay se existir
+          const overlay = modalOverlay || document.getElementById('modalOverlay');
+          if (overlay) {
+            overlay.style.opacity = '0';
+            
+            // Remove o overlay após a animação
+            setTimeout(() => {
+              try {
+                if (overlay && overlay.parentNode) {
+                  overlay.removeEventListener('click', fecharModalNavegacao);
+                  overlay.parentNode.removeChild(overlay);
+                  modalOverlay = null;
+                }
+              } catch (e) {
+                console.error('❌ Erro ao remover overlay:', e);
+              }
+            }, 300);
+          }
+          
+          // Restaura a rolagem da página
+          document.body.style.overflow = '';
+          document.documentElement.style.overflow = '';
+          document.body.style.paddingRight = '';
+          document.body.classList.remove('overflow-hidden', 'modal-open');
+          
+          // Restaura o foco para o elemento que abriu o modal
+          if (ultimoElementoFocado && ultimoElementoFocado.focus) {
+            try {
+              // Aguarda um ciclo de renderização para garantir que o modal foi fechado
+              requestAnimationFrame(() => {
+                try {
+                  ultimoElementoFocado.focus();
+                  console.log('🎯 Foco restaurado para o elemento anterior');
+                } catch (e) {
+                  console.warn('⚠️ Não foi possível restaurar o foco:', e);
+                }
+              });
+            } catch (e) {
+              console.warn('⚠️ Erro ao agendar restauração de foco:', e);
+            }
+          }
+          
+          // Rastreia o fechamento do modal
+          if (window.gtag) {
+            gtag('event', 'modal_fechado', {
+              event_category: 'navegacao',
+              event_label: 'confirmacao_navegacao',
+              value: 1
+            });
+          }
+          
+          // Dispara um evento personalizado para notificar outros componentes
+          const event = new CustomEvent('modalNavegacaoFechado', {
+            detail: { elementoAnterior: ultimoElementoFocado }
+          });
+          document.dispatchEvent(event);
+          
+          console.log('✅ Estado do modal limpo com sucesso');
+          
+          // Rastreia o fechamento do modal
+          if (window.gtag) {
+            gtag('event', 'fechar_modal_navegacao', {
+              'event_category': 'navegacao',
+              'event_label': currentModalData ? currentModalData.nome || 'desconhecido' : 'sem_dados'
+            });
+          }
+          
+        } catch (error) {
+          console.error('❌ Erro durante a limpeza do estado:', error);
+        }
+      };
+      
+      // Função para animar o fechamento
+      const animarFechamento = () => {
+        console.log('🎬 Iniciando animação de fechamento...');
+        
+        try {
+          // Adiciona as classes de animação
+          modal.classList.remove('opacity-100', 'scale-100');
+          modal.classList.add('opacity-0', 'scale-95');
+          
+          // Anima o overlay
+          const overlay = document.getElementById('modalOverlay');
+          if (overlay) {
+            overlay.style.opacity = '0';
+          }
+          
+          // Aguarda o término da animação para limpar o estado
+          setTimeout(limparEstado, 300);
+          
+          console.log('✅ Animação de fechamento concluída');
+          
+        } catch (error) {
+          console.error('❌ Erro durante a animação de fechamento:', error);
+          // Tenta limpar o estado mesmo em caso de erro na animação
+          limparEstado();
+        }
+      };
+      
+      try {
+        // Inicia a animação de fechamento
+        animarFechamento();
+        
+      } catch (error) {
+        console.error('❌ Erro durante o fechamento do modal:', error);
+        
+        // Tenta uma abordagem mais direta em caso de erro
+        try {
+          console.warn('🛠️  Tentando abordagem alternativa para fechar o modal...');
+          
+          // Esconde o modal imediatamente
+          if (modal) {
+            modal.style.display = 'none';
+            modal.style.opacity = '0';
+            modal.style.visibility = 'hidden';
+          }
+          
+          // Limpa o estado
+          limparEstado();
+          
+        } catch (e) {
+          console.error('❌ Erro crítico ao tentar fechar o modal:', e);
+          
+          // Último recurso: recarrega a página se estiver em ambiente de desenvolvimento
+          if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            console.warn('🔄 Tentando recarregar a página para restaurar o estado...');
+            window.location.reload();
+          }
+        }
+      }
+    }
+    
+    // Fechar com ESC
+    document.addEventListener('keydown', function handleEscKey(e) {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('modalNavegacao');
+        if (modal && !modal.classList.contains('hidden')) {
+          console.log('Tecla ESC pressionada, fechando modal...');
+          fecharModalNavegacao();
+        }
+      }
     });
   </script>
+  
+
   {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<!-- Modal de Confirmação de Navegação -->
+<div id="modalNavegacao" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000] hidden transition-opacity duration-300 opacity-0" aria-labelledby="tituloNavegacao" role="dialog" aria-hidden="true">
+  <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl transform transition-all duration-300 scale-95" onclick="event.stopPropagation()">
+    <div class="text-center">
+      <!-- Ícone de localização -->
+      <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-mototec-teal/10 mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-mototec-teal" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </div>
+      
+      <!-- Título dinâmico -->
+      <h3 id="tituloNavegacao" class="text-xl font-bold text-gray-900 mb-2">Carregando...</h3>
+      
+      <!-- Descrição com informações -->
+      <div id="descricaoNavegacao" class="text-gray-600 mb-6">
+        <!-- Conteúdo será preenchido dinamicamente -->
+      </div>
+      
+      <!-- Botões de ação -->
+      <div class="flex flex-col sm:flex-row justify-center gap-3">
+        <button 
+          id="btnCancelarNavegacao" 
+          class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mototec-teal"
+          onclick="fecharModalNavegacao()"
+        >
+          Cancelar
+        </button>
+        <button 
+          id="btnAbrirRota" 
+          class="hidden flex-1 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-mototec-blue hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          Abrir Rota
+        </button>
+        <button 
+          id="btnConfirmarNavegacao" 
+          class="flex-1 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-mototec-teal hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+        >
+          Ver Detalhes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Inicialização do modal após o carregamento do DOM
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('=== INÍCIO INICIALIZAÇÃO DO MODAL ===');
+  
+  const modal = document.getElementById('modalNavegacao');
+  const btnCancelar = document.getElementById('btnCancelarNavegacao');
+  const btnAbrirRota = document.getElementById('btnAbrirRota');
+  const btnConfirmar = document.getElementById('btnConfirmarNavegacao');
+  
+  // Verifica se os elementos principais existem
+  if (!modal) {
+    console.error('❌ ERRO: Modal de navegação não encontrado no DOM');
+    return;
+  }
+  
+  console.log('✅ Modal encontrado no DOM');
+  
+  // Configura o botão cancelar
+  if (btnCancelar) {
+    console.log('✅ Botão cancelar encontrado');
+    // Remove event listeners antigos para evitar duplicação
+    const novoBtnCancelar = btnCancelar.cloneNode(true);
+    btnCancelar.parentNode.replaceChild(novoBtnCancelar, btnCancelar);
+    
+    // Adiciona o novo event listener
+    novoBtnCancelar.addEventListener('click', fecharModalNavegacao);
+  } else {
+    console.error('❌ Aviso: Botão cancelar não encontrado');
+  }
+  
+  // Fechar modal ao clicar fora
+  modal.addEventListener('click', function(e) {
+    if (e.target === this) {
+      console.log('Clicou fora do modal, fechando...');
+      fecharModalNavegacao();
+    }
+  });
+  
+  console.log('✅ Modal de navegação inicializado com sucesso');
+  
+  // Teste: Tenta mostrar o modal após 2 segundos (apenas em ambiente de desenvolvimento)
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    console.log('Teste: Tentando mostrar o modal em 2 segundos...');
+    setTimeout(() => {
+      console.log('Executando teste do modal...');
+      const testGroup = {
+        quantidade_restaurantes: 5,
+        total_pedidos: 10,
+        intensidade: 0.75,
+        lat: -23.9931,
+        lng: -46.3028
+      };
+      mostrarConfirmacaoNavegacao(testGroup);
+    }, 2000);
+  }
+});
+</script>
 {% endblock %}

@@ -1,7 +1,8 @@
 from django import forms
 from .models import Perfil
 from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, PasswordResetForm
+from django.utils.translation import gettext_lazy as _
 
 def __init__(self, *args, **kwargs):
     super(CadastroForm, self).__init__(*args, **kwargs)
@@ -27,3 +28,16 @@ class CadastroForm(UserCreationForm):
             user.save()
             Perfil.objects.create(user=user, cpf_cnh=self.cleaned_data['cpf_cnh']) 
         return user
+
+
+class SenhaRecuperadaForm(PasswordResetForm):
+    email = forms.EmailField(
+        label=_("Email"),
+        max_length=254,
+        widget=forms.EmailInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'seu@email.com',
+            'autocomplete': 'email',
+            'required': 'required'
+        })
+    )
